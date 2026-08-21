@@ -29,6 +29,7 @@ test: selftest
 	node tests/test_admit.mjs
 	node tests/test_local_stratum.mjs
 	node tests/test_readme.mjs
+	sh tests/test_public_host.sh
 
 pack-macos: $(BIN)
 	rm -rf dist/gnfp-cminer-$(VERSION)

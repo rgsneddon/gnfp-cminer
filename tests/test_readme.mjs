@@ -18,5 +18,4 @@ assert.match(md, /gnfp-cminer-1\.1\.0-macos\.tar\.gz/);
 assert.match(md, /gnfp-cminer-1\.1\.0-linux\.tar\.gz/);
 assert.match(md, /gnfp-cminer-1\.1\.0-windows\.zip/);
 assert.match(md, /github.com\/rgsneddon\/gnfp-cminer/);
-assert.match(md, /private/);
 console.log('README credit/fee/hash notes ok');

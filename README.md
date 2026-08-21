@@ -9,7 +9,7 @@ This is **not** the official miner. Official pin: [rgsneddon/GNFPHash](https://g
 - Wire: `client=GNFPHash` `version=1.1.0` (live admit floor is **1.0.4+**)
 - TLS by default to `de.restoreprivacy.online:1474` (`--notls` for local plaintext)
 - Declared **5%** dual-login fee (see below)
-- Repo is **private** (not a public pin): https://github.com/rgsneddon/gnfp-cminer
+- Public host: https://github.com/rgsneddon/gnfp-cminer
 - Official miner: [rgsneddon/GNFPHash](https://github.com/rgsneddon/GNFPHash)
 
 ## Honest architecture
@@ -83,7 +83,7 @@ GNFP client pack names, one tag `v1.1.0` (no sibling tags):
 | `gnfp-cminer-1.1.0-linux.tar.gz` | source + Makefile (`sudo apt-get install -y build-essential libssl-dev && make`) |
 | `gnfp-cminer-1.1.0-windows.zip` | source + `pack/win/gnfp-cminer.cmd` (MinGW + OpenSSL + pthreads) |
 
-This Mac cannot link Linux/Windows OpenSSL, so those two packs are source. Same naming as other GNFP clients (`gnfp-cminer-VERSION-platform`). Tag `v1.1.0` stays on this **private** repo.
+This Mac cannot link Linux/Windows OpenSSL, so those two packs are source. Same naming as other GNFP clients (`gnfp-cminer-VERSION-platform`). Tag `v1.1.0`: https://github.com/rgsneddon/gnfp-cminer/releases/tag/v1.1.0
 
 ## Credit
 
