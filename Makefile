@@ -15,7 +15,7 @@ LIBS ?= $(SSL_LIBS) -pthread
 BIN := gnfp-cminer
 SRC := src/gnfp_cminer.c src/gnfp_hash.c
 
-.PHONY: all clean selftest test pack-macos
+.PHONY: all clean selftest test pack-macos pack-linux pack-windows pack-all
 
 all: $(BIN)
 
@@ -31,11 +31,31 @@ test: selftest
 	node tests/test_readme.mjs
 
 pack-macos: $(BIN)
+	rm -rf dist/gnfp-cminer-$(VERSION)
 	mkdir -p dist/gnfp-cminer-$(VERSION)
 	cp $(BIN) README.md LICENSE Makefile dist/gnfp-cminer-$(VERSION)/
 	cp -R src tests pack dist/gnfp-cminer-$(VERSION)/
 	tar -C dist -czf dist/gnfp-cminer-$(VERSION)-macos.tar.gz gnfp-cminer-$(VERSION)
 	@echo packed dist/gnfp-cminer-$(VERSION)-macos.tar.gz
+
+pack-linux:
+	rm -rf dist/gnfp-cminer-$(VERSION)
+	mkdir -p dist/gnfp-cminer-$(VERSION)
+	cp README.md LICENSE Makefile pack-unavailable.log dist/gnfp-cminer-$(VERSION)/
+	cp -R src tests pack dist/gnfp-cminer-$(VERSION)/
+	tar -C dist -czf dist/gnfp-cminer-$(VERSION)-linux.tar.gz gnfp-cminer-$(VERSION)
+	@echo packed dist/gnfp-cminer-$(VERSION)-linux.tar.gz
+
+pack-windows:
+	rm -rf dist/gnfp-cminer-$(VERSION)
+	mkdir -p dist/gnfp-cminer-$(VERSION)
+	cp README.md LICENSE Makefile pack-unavailable.log dist/gnfp-cminer-$(VERSION)/
+	cp -R src tests pack dist/gnfp-cminer-$(VERSION)/
+	rm -f dist/gnfp-cminer-$(VERSION)-windows.zip
+	cd dist && zip -r -q gnfp-cminer-$(VERSION)-windows.zip gnfp-cminer-$(VERSION)
+	@echo packed dist/gnfp-cminer-$(VERSION)-windows.zip
+
+pack-all: pack-macos pack-linux pack-windows
 
 clean:
 	rm -f $(BIN) $(BIN).exe

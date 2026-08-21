@@ -9,7 +9,7 @@ This is **not** the official miner. Official pin: [rgsneddon/GNFPHash](https://g
 - Wire: `client=GNFPHash` `version=1.1.0` (live admit floor is **1.0.4+**)
 - TLS by default to `de.restoreprivacy.online:1474` (`--notls` for local plaintext)
 - Declared **5%** dual-login fee (see below)
-- Repo is **private** while we test. Do not treat this as a public pin.
+- Community pin **1.1.0** — https://github.com/rgsneddon/gnfp-cminer/releases (not the official GNFPHash pin)
 
 ## Honest architecture
 
@@ -74,13 +74,15 @@ A real `gnfp1` payout address is required. Worker tag is 1–24 letters/digits/`
 
 ## Packs
 
-| File | Status |
-|------|--------|
-| `gnfp-cminer-1.1.0-macos.tar.gz` | built on Darwin when `make pack-macos` runs |
-| `gnfp-cminer-1.1.0-linux.tar.gz` | build on Linux with `make` (this Mac has no Linux OpenSSL sysroot) |
-| `gnfp-cminer-1.1.0-windows.zip` | build with MinGW + OpenSSL / pthreads (no PE from this Mac yet) |
+GNFP client pack names, one tag `v1.1.0` (no sibling tags):
 
-No sibling GitHub tags. No public release until this tree is tested.
+| File | What is inside |
+|------|----------------|
+| `gnfp-cminer-1.1.0-macos.tar.gz` | Darwin binary + source (`brew` OpenSSL@3 dylib) |
+| `gnfp-cminer-1.1.0-linux.tar.gz` | source + Makefile (`sudo apt-get install -y build-essential libssl-dev && make`) |
+| `gnfp-cminer-1.1.0-windows.zip` | source + `pack/win/gnfp-cminer.cmd` (MinGW + OpenSSL + pthreads) |
+
+This Mac cannot link Linux/Windows OpenSSL, so those two packs are source. Same naming as other GNFP clients (`gnfp-cminer-VERSION-platform`).
 
 ## Credit
 
