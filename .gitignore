@@ -1,0 +1,5 @@
+/gnfp-cminer
+/gnfp-cminer.exe
+*.o
+dist/
+.DS_Store
