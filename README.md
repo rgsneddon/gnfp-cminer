@@ -85,6 +85,12 @@ GNFP client pack names, one tag `v1.1.0` (no sibling tags):
 
 This Mac cannot link Linux/Windows OpenSSL, so those two packs are source. Same naming as other GNFP clients (`gnfp-cminer-VERSION-platform`). Tag `v1.1.0` is on this **private** repo.
 
+## Leftover — one Darwin x86_64 host (2013 Air)
+
+`leftover/macos-x86_64-haswell-bigsur/` is a **Haswell / Big Sur 11.7.11** native binary + source from MacBookAir6,1 (no Homebrew OpenSSL; Apple TLS + AVX2). Wire `GNFPHash 1.0.5`. It is **not** a second pin and **not** a substitute for the 1.1.0 packs.
+
+Other platforms still need a modern Mac or the Windows laptop (`pack/win`, Linux `make`). See that leftover README.
+
 ## Credit
 
 - Original closed miner and 5% fee: [rvp-design/gnfp_cminer](https://github.com/rvp-design/gnfp_cminer)
