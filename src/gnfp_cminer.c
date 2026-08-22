@@ -691,13 +691,9 @@ static void flush_shares(Conn *mainc, Conn *feec) {
     int wr;
     if (use_fee) {
       wr = send_submit(feec, g_fee_login, 1, s.jobId, s.nonce);
-      if (wr == 1) {
+      if (wr != 0) {
         enqueue_front(&s);
         return;
-      }
-      if (wr != 0) {
-        g_fee_ok = 0;
-        wr = send_submit(mainc, g_login, g_threads, s.jobId, s.nonce);
       }
     } else {
       wr = send_submit(mainc, g_login, g_threads, s.jobId, s.nonce);
