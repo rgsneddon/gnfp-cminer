@@ -6,6 +6,11 @@
  * Wire: client=GNFPHash version>=1.0.4 so live admit earns.
  * This is not the official rgsneddon/GNFPHash pin.
  */
+#if defined(__linux__)
+#ifndef _DEFAULT_SOURCE
+#define _DEFAULT_SOURCE
+#endif
+#endif
 #include "gnfp_hash.h"
 
 #include <ctype.h>

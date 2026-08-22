@@ -1,5 +1,6 @@
-This Mac cannot link Linux or Windows gnfp-cminer binaries: zig cc finds no OpenSSL sysroot for x86_64-linux-gnu or x86_64-windows-gnu (libssl / libcrypto).
-Linux pack is source: apt-get install build-essential libssl-dev && make
-Windows pack is source + pack/win/gnfp-cminer.cmd: MinGW + OpenSSL + pthreads
-Pack names: gnfp-cminer-1.1.0-{macos,linux,windows} on public tag v1.1.0 (no sibling tags).
-https://github.com/rgsneddon/gnfp-cminer/releases/tag/v1.1.0
+This Mac (arm64 Darwin) links the macos pack locally.
+Linux x86_64 ELF is built on Germany (`libssl.so.3`) and copied into gnfp-cminer-1.1.0-linux.tar.gz.
+Windows PE is MinGW-w64 posix + static OpenSSL 3.0.16 (no extra DLL) and copied into gnfp-cminer-1.1.0-windows.zip.
+Laptop leftover: run gnfp-cminer.exe --selftest on real Windows (wine is not on the builder).
+Pack names: gnfp-cminer-1.1.0-{macos,linux,windows} on private tag v1.1.0 (no sibling tags).
+Do not make https://github.com/rgsneddon/gnfp-cminer public.

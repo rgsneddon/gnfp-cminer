@@ -2,7 +2,7 @@
 
 One-platform native build from the **2013 MacBook Air 6,1** (Intel i5-4250U, AVX2, no SHA-NI, no Homebrew OpenSSL).
 
-This is **not** a multi-platform pin. Other OS/arch still need separate work from the 1.1.0 source on `main` (OpenSSL, `pack/win`, Linux `make`).
+This is **not** a multi-platform pin. 1.1.0 packs on private `v1.1.0` now include Darwin **arm64**, Linux **x86_64 ELF**, and Windows **PE**. Keep this leftover as the Air-only Haswell binary.
 
 | | |
 |--|--|
@@ -27,10 +27,10 @@ Run on **this** Air (keep `--threads 1` — two threads cook the chassis):
 ./gnfp_cminer --user gnfp1YOURADDRESS.worker --threads 1
 ```
 
-Will **not** run on Apple silicon (arm64) or Linux. Rebuilds:
+Will **not** run on Apple silicon (arm64) or Linux. Other platforms are on private `v1.1.0` (no sibling tag):
 
-- **macOS arm64** — different CPU; 1.1.0 `pack-macos` + OpenSSL@3 on a modern Mac, or port this leftover’s Apple TLS + Neon later.
-- **Linux x86_64** — `main` Makefile + `libssl-dev`. Merge proven-stats / in-flight queue from this leftover if you want the same board numbers.
-- **Windows** — `pack/win/gnfp-cminer.cmd` on the laptop; no PE from this Air.
+- **macOS arm64** — `gnfp-cminer-1.1.0-macos.tar.gz` (OpenSSL@3).
+- **Linux x86_64** — `gnfp-cminer-1.1.0-linux.tar.gz` ELF (`libssl.so.3`).
+- **Windows** — `gnfp-cminer-1.1.0-windows.zip` includes `gnfp-cminer.exe` (static OpenSSL). Laptop leftover is `--selftest` on real Windows.
 
 Live book `de.restoreprivacy.online:1474` is still **fixed diff 14**. Next pool work is **vardiff** (~1 share / 5–10s per TCP session). See `rgsneddon/handoff` `HANDOFF.md`.

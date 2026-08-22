@@ -79,17 +79,15 @@ GNFP client pack names, one tag `v1.1.0` (no sibling tags):
 
 | File | What is inside |
 |------|----------------|
-| `gnfp-cminer-1.1.0-macos.tar.gz` | Darwin binary + source (`brew` OpenSSL@3 dylib) |
-| `gnfp-cminer-1.1.0-linux.tar.gz` | source + Makefile (`sudo apt-get install -y build-essential libssl-dev && make`) |
-| `gnfp-cminer-1.1.0-windows.zip` | source + `pack/win/gnfp-cminer.cmd` (MinGW + OpenSSL + pthreads) |
+| `gnfp-cminer-1.1.0-macos.tar.gz` | Darwin **arm64** binary + source (`brew` OpenSSL@3 dylib) |
+| `gnfp-cminer-1.1.0-linux.tar.gz` | Linux **x86_64 ELF** + source (`libssl.so.3`; rebuild with `sudo apt-get install -y build-essential libssl-dev && make`) |
+| `gnfp-cminer-1.1.0-windows.zip` | Windows **PE** `gnfp-cminer.exe` (static OpenSSL, no extra DLL) + source + `pack/win/gnfp-cminer.cmd` |
 
-This Mac cannot link Linux/Windows OpenSSL, so those two packs are source. Same naming as other GNFP clients (`gnfp-cminer-VERSION-platform`). Tag `v1.1.0` is on this **private** repo.
+Same naming as other GNFP clients (`gnfp-cminer-VERSION-platform`). Tag `v1.1.0` is on this **private** repo. Do not make it public. The macos pack is **arm64**; Haswell x86_64 stays under `leftover/` (not a second pin).
 
 ## Leftover — one Darwin x86_64 host (2013 Air)
 
-`leftover/macos-x86_64-haswell-bigsur/` is a **Haswell / Big Sur 11.7.11** native binary + source from MacBookAir6,1 (no Homebrew OpenSSL; Apple TLS + AVX2). Wire `GNFPHash 1.0.5`. It is **not** a second pin and **not** a substitute for the 1.1.0 packs.
-
-Other platforms still need a modern Mac or the Windows laptop (`pack/win`, Linux `make`). See that leftover README.
+`leftover/macos-x86_64-haswell-bigsur/` is a **Haswell / Big Sur 11.7.11** native binary + source from MacBookAir6,1 (no Homebrew OpenSSL; Apple TLS + AVX2). Wire `GNFPHash 1.0.5`. It is **not** a second pin and **not** a substitute for the 1.1.0 packs. See that leftover README.
 
 ## Credit
 

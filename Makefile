@@ -6,11 +6,17 @@ OPENSSL_PREFIX ?= $(shell brew --prefix openssl@3 2>/dev/null)
 ifeq ($(OPENSSL_PREFIX),)
   SSL_CFLAGS := $(shell pkg-config --cflags openssl 2>/dev/null)
   SSL_LIBS := $(shell pkg-config --libs openssl 2>/dev/null)
+  ifeq ($(strip $(SSL_LIBS)),)
+    SSL_LIBS := -lssl -lcrypto
+  endif
 else
   SSL_CFLAGS := -I$(OPENSSL_PREFIX)/include
   SSL_LIBS := -L$(OPENSSL_PREFIX)/lib -lssl -lcrypto
 endif
 LIBS ?= $(SSL_LIBS) -pthread
+LINUX_BIN ?=
+WIN_BIN ?=
+WIN_DLLS ?=
 
 BIN := gnfp-cminer
 SRC := src/gnfp_cminer.c src/gnfp_hash.c
@@ -42,16 +48,32 @@ pack-macos: $(BIN)
 pack-linux:
 	rm -rf dist/gnfp-cminer-$(VERSION)
 	mkdir -p dist/gnfp-cminer-$(VERSION)
-	cp README.md LICENSE Makefile pack-unavailable.log dist/gnfp-cminer-$(VERSION)/
+	cp README.md LICENSE Makefile dist/gnfp-cminer-$(VERSION)/
 	cp -R src tests pack dist/gnfp-cminer-$(VERSION)/
+	@if [ -n "$(LINUX_BIN)" ] && [ -f "$(LINUX_BIN)" ]; then \
+	  cp "$(LINUX_BIN)" dist/gnfp-cminer-$(VERSION)/gnfp-cminer; \
+	  chmod +x dist/gnfp-cminer-$(VERSION)/gnfp-cminer; \
+	  echo included linux ELF $(LINUX_BIN); \
+	else \
+	  cp pack-unavailable.log dist/gnfp-cminer-$(VERSION)/; \
+	  echo linux pack is source — set LINUX_BIN=path-to-elf; \
+	fi
 	tar -C dist -czf dist/gnfp-cminer-$(VERSION)-linux.tar.gz gnfp-cminer-$(VERSION)
 	@echo packed dist/gnfp-cminer-$(VERSION)-linux.tar.gz
 
 pack-windows:
 	rm -rf dist/gnfp-cminer-$(VERSION)
 	mkdir -p dist/gnfp-cminer-$(VERSION)
-	cp README.md LICENSE Makefile pack-unavailable.log dist/gnfp-cminer-$(VERSION)/
+	cp README.md LICENSE Makefile dist/gnfp-cminer-$(VERSION)/
 	cp -R src tests pack dist/gnfp-cminer-$(VERSION)/
+	@if [ -n "$(WIN_BIN)" ] && [ -f "$(WIN_BIN)" ]; then \
+	  cp "$(WIN_BIN)" dist/gnfp-cminer-$(VERSION)/gnfp-cminer.exe; \
+	  echo included windows PE $(WIN_BIN); \
+	  if [ -n "$(WIN_DLLS)" ]; then cp $(WIN_DLLS) dist/gnfp-cminer-$(VERSION)/; fi; \
+	else \
+	  cp pack-unavailable.log dist/gnfp-cminer-$(VERSION)/; \
+	  echo windows pack is source — set WIN_BIN=path-to-exe; \
+	fi
 	rm -f dist/gnfp-cminer-$(VERSION)-windows.zip
 	cd dist && zip -r -q gnfp-cminer-$(VERSION)-windows.zip gnfp-cminer-$(VERSION)
 	@echo packed dist/gnfp-cminer-$(VERSION)-windows.zip
