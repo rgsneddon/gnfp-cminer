@@ -53,7 +53,7 @@
 #define MAX_THREADS 256
 #define LINE_CAP 8192
 #define PRE_CAP 256
-#define QCAP 64
+#define QCAP 512
 #define DEFAULT_WORKER "worker"
 
 static const char *g_user = NULL;
@@ -499,9 +499,6 @@ static void apply_job(const char *line, int is_fee) {
   } else {
     g_main_job = job;
     g_have_main = 1;
-    pthread_mutex_lock(&g_q_mu);
-    g_qhead = g_qtail = 0;
-    pthread_mutex_unlock(&g_q_mu);
   }
   pthread_mutex_unlock(&g_job_mu);
   if (!is_fee) {
@@ -621,6 +618,19 @@ static int dequeue_share(Share *out) {
   return 1;
 }
 
+static int enqueue_front(const Share *s) {
+  pthread_mutex_lock(&g_q_mu);
+  int prev = (g_qhead + QCAP - 1) % QCAP;
+  if (prev == g_qtail) {
+    pthread_mutex_unlock(&g_q_mu);
+    return 0;
+  }
+  g_q[prev] = *s;
+  g_qhead = prev;
+  pthread_mutex_unlock(&g_q_mu);
+  return 1;
+}
+
 static void *hash_worker(void *arg) {
   int tid = (int)(intptr_t)arg;
   uint64_t n = g_origin + (uint64_t)tid;
@@ -683,13 +693,23 @@ static void flush_shares(Conn *mainc, Conn *feec) {
   Share s;
   while (dequeue_share(&s)) {
     int use_fee = s.fee && g_fee_ok && feec && feec->fd >= 0 && fee_same_job(s.jobId);
+    int wr;
     if (use_fee) {
-      if (send_submit(feec, g_fee_login, 1, s.jobId, s.nonce) != 0) {
+      wr = send_submit(feec, g_fee_login, 1, s.jobId, s.nonce);
+      if (wr == 1) {
+        enqueue_front(&s);
+        return;
+      }
+      if (wr != 0) {
         g_fee_ok = 0;
-        send_submit(mainc, g_login, g_threads, s.jobId, s.nonce);
+        wr = send_submit(mainc, g_login, g_threads, s.jobId, s.nonce);
       }
     } else {
-      send_submit(mainc, g_login, g_threads, s.jobId, s.nonce);
+      wr = send_submit(mainc, g_login, g_threads, s.jobId, s.nonce);
+    }
+    if (wr == 1) {
+      enqueue_front(&s);
+      return;
     }
   }
 }
