@@ -581,13 +581,6 @@ static int copy_main_job(JobSnap *out) {
   return ok;
 }
 
-static int fee_same_job(const char *jobId) {
-  pthread_mutex_lock(&g_job_mu);
-  int ok = g_have_fee && jobId && strcmp(g_fee_job.jobId, jobId) == 0;
-  pthread_mutex_unlock(&g_job_mu);
-  return ok;
-}
-
 static int enqueue_share(const char *jobId, const char nonce[16]) {
   pthread_mutex_lock(&g_q_mu);
   int next = (g_qtail + 1) % QCAP;
@@ -692,7 +685,9 @@ static void clear_jobs(void) {
 static void flush_shares(Conn *mainc, Conn *feec) {
   Share s;
   while (dequeue_share(&s)) {
-    int use_fee = s.fee && g_fee_ok && feec && feec->fd >= 0 && fee_same_job(s.jobId);
+    /* Fee socket is its own vardiff session (different jobId). Submit the
+     * main job's nonce on the fee login so the book credits FEE_ADDR. */
+    int use_fee = s.fee && g_fee_ok && feec && feec->fd >= 0;
     int wr;
     if (use_fee) {
       wr = send_submit(feec, g_fee_login, 1, s.jobId, s.nonce);

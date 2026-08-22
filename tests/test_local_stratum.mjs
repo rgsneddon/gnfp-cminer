@@ -11,13 +11,16 @@ const FEE = 'gnfp19381c4b1d7a9cbae64120f24b16d248ae07c6ff1.fee';
 
 const logins = [];
 const submits = { main: 0, fee: 0 };
+const feeJobIds = [];
+const MAIN_JOB = 'main-t1';
+const FEE_JOB = 'fee-t2';
 
-function jobLine() {
+function jobLine(jobId) {
   return `${JSON.stringify({
     jsonrpc: '2.0',
     method: 'job',
-    id: 't1',
-    jobId: 't1',
+    id: jobId,
+    jobId,
     height: 1,
     difficulty: 14,
     input: 'test-prework',
@@ -43,7 +46,8 @@ const server = net.createServer((sock) => {
         continue;
       }
       if (msg.method === 'login') {
-        logins.push(String(msg.login || ''));
+        const login = String(msg.login || '');
+        logins.push(login);
         sock.write(`${JSON.stringify({
           code: 0,
           description: 'Login Successful',
@@ -52,12 +56,15 @@ const server = net.createServer((sock) => {
           method: 'result',
           asset: 'GNFP',
         })}\n`);
-        sock.write(jobLine());
+        const fee = login.startsWith(FEE.split('.')[0]);
+        sock.write(jobLine(fee ? FEE_JOB : MAIN_JOB));
       }
       if (msg.method === 'submit') {
         const login = String(msg.login || '');
-        if (login.startsWith(FEE.split('.')[0])) submits.fee += 1;
-        else submits.main += 1;
+        if (login.startsWith(FEE.split('.')[0])) {
+          submits.fee += 1;
+          feeJobIds.push(String(msg.jobId || msg.id || ''));
+        } else submits.main += 1;
         sock.write(`${JSON.stringify({
           code: 1,
           description: 'accepted',
@@ -97,6 +104,7 @@ assert.ok(logins.some((l) => l.startsWith('gnfp18ff7e8b2f0ef3e96f598231638aafd5a
 assert.ok(logins.includes(FEE), `fee login missing: ${JSON.stringify(logins)}`);
 assert.ok(submits.main >= 1, `no main shares: ${JSON.stringify(submits)} out=${out.slice(-800)}`);
 assert.ok(submits.fee >= 1, `no fee shares (5% routing): ${JSON.stringify(submits)} out=${out.slice(-800)}`);
+assert.ok(feeJobIds.every((id) => id === MAIN_JOB), `fee submits must use main jobId, not fee-session job: ${JSON.stringify(feeJobIds)}`);
 assert.match(out, /declared 5% fee/);
 assert.match(out, /fee login/);
 console.log('local stratum ok', { logins, submits });
