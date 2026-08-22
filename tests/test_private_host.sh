@@ -1,42 +1,43 @@
 #!/bin/sh
-# Operator specified this repo stays private. Fail if it is public.
+# Official public pin. Fail if the host is still private / 404.
 set -e
 URL="https://github.com/rgsneddon/gnfp-cminer"
 hdr=$(curl -sI "$URL") || {
   echo "curl failed for $URL" >&2
   exit 1
 }
-code=$(printf '%s\n' "$hdr" | awk 'NR==1 { print $2 }')
-if [ "$code" != "404" ]; then
-  echo "unauth GET $URL -> HTTP $code (want 404; repo must stay private)" >&2
+code=$(printf '%s\n' "$hdr")
+http=$(printf '%s\n' "$hdr" | awk 'NR==1 { print $2 }')
+if [ "$http" = "404" ]; then
+  echo "unauth GET $URL -> HTTP $http (want not 404; repo must be public)" >&2
   printf '%s\n' "$hdr" >&2
   exit 1
 fi
 view=$(gh repo view rgsneddon/gnfp-cminer --json isPrivate,visibility,url)
-printf '%s\n' "$view" | grep -q '"isPrivate":true' || {
-  echo "gh isPrivate is not true: $view" >&2
+printf '%s\n' "$view" | grep -q '"isPrivate":false' || {
+  echo "gh isPrivate is not false: $view" >&2
   exit 1
 }
-printf '%s\n' "$view" | grep -q '"visibility":"PRIVATE"' || {
-  echo "gh visibility is not PRIVATE: $view" >&2
+printf '%s\n' "$view" | grep -q '"visibility":"PUBLIC"' || {
+  echo "gh visibility is not PUBLIC: $view" >&2
   exit 1
 }
-echo "unauth GET $URL -> HTTP $code"
+echo "unauth GET $URL -> HTTP $http"
 printf '%s\n' "$hdr" | awk 'NR<=6'
 echo
 echo "$view"
 if [ -n "$CMINER_PACKS_OUT" ]; then
   {
-    echo "visibility: PRIVATE (operator specified; do not make public)"
-    echo "unauth GET $URL -> HTTP $code"
+    echo "visibility: PUBLIC (official C miner pin)"
+    echo "unauth GET $URL -> HTTP $http"
     printf '%s\n' "$hdr" | awk 'NR<=6'
     echo
     echo "$view"
     echo
-    echo "private auth-only packs on tag v1.1.0 (not a public pin)"
+    echo "public packs on tag v1.1.0"
     echo "gnfp-cminer-1.1.0-macos.tar.gz"
     echo "gnfp-cminer-1.1.0-linux.tar.gz"
     echo "gnfp-cminer-1.1.0-windows.zip"
   } > "$CMINER_PACKS_OUT"
 fi
-echo "private host ok"
+echo "public host ok"

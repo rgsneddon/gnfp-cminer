@@ -1,4 +1,4 @@
-# gnfp-cminer — community GNFPHash CPU miner (declared 5% dual-login fee)
+# gnfp-cminer — official $GNFP CPU miner (declared 5% dual-login miner fee)
 VERSION ?= 1.1.0
 CC ?= cc
 CFLAGS ?= -O2 -Wall -Wextra -std=c11

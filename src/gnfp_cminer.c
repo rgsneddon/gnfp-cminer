@@ -1,10 +1,10 @@
 /*
- * gnfp-cminer — community GNFPHash CPU miner.
+ * gnfp-cminer — official $GNFP CPU miner.
  * Rebuild of rvp-design/gnfp_cminer (that tree is a stripped Linux ELF).
- * Same 8-round GNFPHash-v1 work hash as official GNFPHash.
- * Declared 5% dual-login fee to the friend's published gnfp1.
+ * Same 8-round GNFPHash-v1 work hash as the deprecated Node GNFPHash tree.
+ * Declared 5% dual-login miner fee to the friend's published gnfp1
+ * (not a pool tax; the live book still takes 1% of formed blocks).
  * Wire: client=GNFPHash version>=1.0.4 so live admit earns.
- * This is not the official rgsneddon/GNFPHash pin.
  */
 #if defined(__linux__)
 #ifndef _DEFAULT_SOURCE

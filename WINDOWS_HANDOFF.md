@@ -4,9 +4,9 @@
 
 **https://github.com/rgsneddon/handoff/blob/main/HANDOFF.md**
 
-Current pin here: **1.1.0 private**. Repo **rgsneddon/gnfp-cminer** stays **private**. Not official GNFPHash.
+Current pin here: **1.1.0 public**. https://github.com/rgsneddon/gnfp-cminer/releases/tag/v1.1.0
 
-Windows zip on **the same** `v1.1.0` already includes `gnfp-cminer.exe` (MinGW PE, static OpenSSL, no extra DLL) plus `pack\win\gnfp-cminer.cmd`. Darwin **arm64** and Linux **x86_64 ELF** are also on that tag. Haswell x86_64 stays under `leftover/macos-x86_64-haswell-bigsur/` (Air only, not a second pin).
+Windows zip on **the same** `v1.1.0` already includes `gnfp-cminer.exe` (MinGW PE, static OpenSSL, no extra DLL) plus `pack\win\gnfp-cminer.cmd`. Darwin **arm64** and Linux **x86_64 ELF** are also on that tag. **Do not rebuild the PE.** Haswell leftover is Air-only.
 
 ## Laptop leftover (verify, do not rebuild)
 
@@ -26,4 +26,4 @@ Then optional live TLS:
 gnfp-cminer.exe --user gnfp1YOURADDRESS.worker --threads 1
 ```
 
-Do **not** invent a sibling tag. Do **not** make the repo public. Do **not** rebuild 1.1.0 as a new pin.
+Do **not** invent a sibling tag. Do **not** rebuild 1.1.0. PE is already on the public tag.
