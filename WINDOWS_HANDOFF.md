@@ -6,9 +6,9 @@
 
 Current pin here: **1.1.1 public**. https://github.com/rgsneddon/gnfp-cminer/releases/tag/v1.1.1
 
-No `--threads` 256 clamp. Darwin **arm64** is on the tag from this Mac. Linux **x86_64 ELF** and Windows **PE** are laptop leftover on **the same** `v1.1.1`. Do **not** rebuild **1.1.0**. Haswell leftover is Air-only.
+No `--threads` 256 clamp. Darwin **arm64**, Linux **x86_64 ELF**, and Windows **PE** are on **the same** `v1.1.1`. Do **not** rebuild **1.1.0**. Haswell leftover is Air-only.
 
-## Laptop leftover (PE / ELF on the same tag)
+## PE / ELF on the same tag (attached 2026-08-24)
 
 ```
 gnfp-cminer.exe --selftest

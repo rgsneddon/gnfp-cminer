@@ -95,8 +95,8 @@ GNFP client pack names, one tag `v1.1.1` (no sibling tags):
 | File | What is inside |
 |------|----------------|
 | `gnfp-cminer-1.1.1-macos.tar.gz` | Darwin **arm64** binary + source (`brew` OpenSSL@3 dylib) |
-| `gnfp-cminer-1.1.1-linux.tar.gz` | Linux **x86_64 ELF** + source when the laptop leftover is attached (`libssl.so.3`; rebuild with `sudo apt-get install -y build-essential libssl-dev && make`) |
-| `gnfp-cminer-1.1.1-windows.zip` | Windows **PE** `gnfp-cminer.exe` (static OpenSSL, no extra DLL) when the laptop leftover is attached + source + `pack/win/gnfp-cminer.cmd` |
+| `gnfp-cminer-1.1.1-linux.tar.gz` | Linux **x86_64 ELF** + source (`libssl.so.3`; rebuild with `sudo apt-get install -y build-essential libssl-dev && make`) |
+| `gnfp-cminer-1.1.1-windows.zip` | Windows **PE** `gnfp-cminer.exe` (static OpenSSL 3.0.16, no extra DLL) + source + `pack/win/gnfp-cminer.cmd` |
 
 Same naming as other GNFP clients (`gnfp-cminer-VERSION-platform`). Public pin: https://github.com/rgsneddon/gnfp-cminer/releases/tag/v1.1.1
 
