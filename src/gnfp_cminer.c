@@ -723,12 +723,31 @@ static void flush_shares(Conn *mainc, Conn *feec) {
   }
 }
 
+static void fmt_hashrate(double hs, char *buf, size_t n) {
+  static const char *units[] = {
+    "H/s", "kH/s", "MH/s", "GH/s", "TH/s", "PH/s", "EH/s", "ZH/s",
+  };
+  int i = 0;
+  if (!(hs > 0.0)) {
+    snprintf(buf, n, "0.0 H/s");
+    return;
+  }
+  while (hs >= 1000.0 && i < 7) {
+    hs /= 1000.0;
+    i += 1;
+  }
+  if (i == 0) snprintf(buf, n, "%.1f %s", hs, units[i]);
+  else snprintf(buf, n, "%.2f %s", hs, units[i]);
+}
+
 static void paint_live(double elapsed, const char *jobId, int height) {
   (void)jobId;
   uint64_t h = atomic_load_explicit(&g_hashes, memory_order_relaxed);
   double hs = elapsed > 0.001 ? (double)h / elapsed : 0;
-  printf("hashrate=%.1f H/s worker=%s accepted=%d rejected=%d blocks=%d threads=%d height=%d pool=%s:%d\n",
-         hs, g_login, g_accepted, g_rejected, g_blocks, g_threads, height, g_host, g_port);
+  char rate[32];
+  fmt_hashrate(hs, rate, sizeof(rate));
+  printf("hashrate=%s worker=%s accepted=%d rejected=%d blocks=%d threads=%d height=%d pool=%s:%d\n",
+         rate, g_login, g_accepted, g_rejected, g_blocks, g_threads, height, g_host, g_port);
   fflush(stdout);
 }
 
