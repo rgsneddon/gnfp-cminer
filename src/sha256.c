@@ -7,7 +7,7 @@
 #include <string.h>
 
 #if defined(__AVX2__) && !defined(GNFP_ALLOW_AVX2)
-#error "gnfp-cminer 1.1.4 default build is scalar-only. Do not pass -mavx2 (that SIGILL/voltage path is 1.1.2)."
+#error "gnfp-cminer 1.1.5 default build is scalar-only. Do not pass -mavx2 (that SIGILL/voltage path is 1.1.2)."
 #endif
 
 #if defined(__AVX2__)
@@ -93,6 +93,23 @@ void sha256_compress(uint32_t state[8], const uint8_t block[64]) {
   state[5] += f;
   state[6] += g;
   state[7] += h;
+}
+
+void sha256_finish(uint32_t state[8], const uint8_t *rest, size_t rest_len, size_t total_len,
+                   uint8_t out[32]) {
+  uint8_t tail[128];
+  memset(tail, 0, sizeof(tail));
+  if (rest_len) memcpy(tail, rest, rest_len);
+  tail[rest_len] = 0x80;
+  size_t pad_blocks = (rest_len + 1 + 8 <= 64) ? 1 : 2;
+  uint64_t bits = (uint64_t)total_len * 8ull;
+  size_t off = pad_blocks * 64 - 8;
+  for (int b = 7; b >= 0; b--) {
+    tail[off + (size_t)(7 - b)] = (uint8_t)(bits >> (b * 8));
+  }
+  sha256_compress(state, tail);
+  if (pad_blocks == 2) sha256_compress(state, tail + 64);
+  for (int j = 0; j < 8; j++) store_be32(out + 4 * j, state[j]);
 }
 
 void sha256_oneshot(const uint8_t *data, size_t len, uint8_t out[32]) {

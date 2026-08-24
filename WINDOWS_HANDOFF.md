@@ -4,11 +4,11 @@
 
 **https://github.com/rgsneddon/handoff/blob/main/HANDOFF.md**
 
-Current pin here: **1.1.4 public** (scalar-only, fee worker `fTAIL_worker`). https://github.com/rgsneddon/gnfp-cminer/releases/tag/v1.1.4
+Current pin here: **1.1.5 public** (scalar-only, job midstate, fee worker `fTAIL_worker`). https://github.com/rgsneddon/gnfp-cminer/releases/tag/v1.1.5
 
-No `--threads` 256 clamp. Darwin **arm64** on **the same** `v1.1.4`. **Leftover (do this now):** Windows PE + Linux ELF attach to **the same** `v1.1.4` — full steps in https://github.com/rgsneddon/handoff/blob/main/HANDOFF.md section **Windows leftover (gnfp-cminer 1.1.4 PE / ELF)**. Do **not** recut **1.1.3**. Do **not** ship leftover `1.0.6-max-autotune`. Haswell leftover is Air-only.
+No `--threads` 256 clamp. Do **not** recut **1.1.4**. Do **not** ship leftover `1.0.6-max-autotune`. Haswell leftover is Air-only.
 
-## PE / ELF leftover — do this now (not yet attached)
+## PE / ELF on the same tag (attached 2026-08-25)
 
 ```
 gnfp-cminer.exe --selftest

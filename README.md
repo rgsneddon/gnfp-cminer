@@ -1,19 +1,19 @@
 # gnfp-cminer
 
-Official **$GNFP** CPU miner. Pin **1.1.4** (scalar-only).
+Official **$GNFP** CPU miner. Pin **1.1.5** (scalar-only, job midstate).
 
 The Node **GNFPHash** / `gnfp-mine` tree is **deprecated** as the miner everyone should pull. Use this C miner instead: https://github.com/rgsneddon/gnfp-cminer
 
 - Coin: GNFP
 - Algo: **GNFPHash** (same 8-round `GNFPHash-v1` work hash)
-- Wire: `client=GNFPHash` `version=1.1.4` (live admit floor is **1.0.4+**)
+- Wire: `client=GNFPHash` `version=1.1.5` (live admit floor is **1.0.4+**)
 - TLS by default to `de.restoreprivacy.online:1474` (`--notls` for local plaintext)
 - Declared **5%** dual-login fee (see below)
 - **No `--threads` 256 clamp.** `--threads N` is this machine’s logical CPUs only (no hardcoded farm-size lid).
 - Repo: https://github.com/rgsneddon/gnfp-cminer
-- Releases: https://github.com/rgsneddon/gnfp-cminer/releases/tag/v1.1.4
-- **Scalar-only.** Default `make` does **not** pass `-mavx2` / `-msha`. Hash backend is `scalar-x8`. Do not enable AVX/AVX2/SHA in BIOS or overvolt the CPU to run this miner. Public **1.1.2** Linux/Windows ELFs still contain AVX2 ymm — use **1.1.4**. Do **not** run leftover `1.0.6-max-autotune` uploads (SHA-NI single-block + fee login does not credit `FEE_ADDR`).
-- 8-way scalar batch, `--bench`, in-flight share window
+- Releases: https://github.com/rgsneddon/gnfp-cminer/releases/tag/v1.1.5
+- **Scalar-only.** Default `make` does **not** pass `-mavx2` / `-msha`. Hash backend is `scalar-x8`. Job midstate caches the first SHA-256 block when `preWork` is long enough (live 64-char hex). Do not enable AVX/AVX2/SHA in BIOS or overvolt the CPU to run this miner. Public **1.1.2** Linux/Windows ELFs still contain AVX2 ymm — use **1.1.5**. Do **not** recut **1.1.4**. Do **not** run leftover `1.0.6-max-autotune` uploads (SHA-NI single-block + fee login does not credit `FEE_ADDR`).
+- 8-way scalar batch, first-block midstate, `--bench`, in-flight share window
 
 Rebuild of [rvp-design/gnfp_cminer](https://github.com/rvp-design/gnfp_cminer) (that GitHub tree is a stripped Linux ELF, not source).
 
@@ -81,7 +81,7 @@ A real `gnfp1` payout address is required. Worker tag is 1–24 letters/digits/`
 
 ## How-to (Windows)
 
-Unpack `gnfp-cminer-1.1.4-windows.zip`. Keep the OpenSSL DLLs next to `gnfp-cminer.exe`. Run:
+Unpack `gnfp-cminer-1.1.5-windows.zip`. Static OpenSSL PE (no extra DLL). Run:
 
 ```
 gnfp-cminer.exe --selftest
@@ -92,17 +92,17 @@ Or edit `example.bat` (replace `gnfp1YOURADDRESS`) and double-click it. `pack\wi
 
 ## Packs
 
-GNFP client pack names, one tag `v1.1.4` (no sibling tags):
+GNFP client pack names, one tag `v1.1.5` (no sibling tags):
 
 | File | What is inside |
 |------|----------------|
-| `gnfp-cminer-1.1.4-macos.tar.gz` | Darwin **arm64** scalar binary + source (`brew` OpenSSL@3 dylib) |
-| `gnfp-cminer-1.1.4-linux.tar.gz` | Linux **x86_64** source (`libssl.so.3`; rebuild with `sudo apt-get install -y build-essential libssl-dev && make`). ELF leftover is attached when Germany builds it. |
-| `gnfp-cminer-1.1.4-windows.zip` | Windows source + `example.bat`. PE leftover on the laptop (scalar; no `-mavx2`). |
+| `gnfp-cminer-1.1.5-macos.tar.gz` | Darwin **arm64** leftover on Amelia’s Mac (scalar). |
+| `gnfp-cminer-1.1.5-linux.tar.gz` | Linux **x86_64** ELF (`libssl.so.3`) + source. Scalar, first-block midstate. |
+| `gnfp-cminer-1.1.5-windows.zip` | Windows PE + `example.bat` (scalar; no `-mavx2`; static OpenSSL). |
 
-Same naming as other GNFP clients (`gnfp-cminer-VERSION-platform`). Public pin: https://github.com/rgsneddon/gnfp-cminer/releases/tag/v1.1.4
+Same naming as other GNFP clients (`gnfp-cminer-VERSION-platform`). Public pin: https://github.com/rgsneddon/gnfp-cminer/releases/tag/v1.1.5
 
-Do **not** recut public **1.1.3** / **1.1.2**. **1.1.2** Linux ELF still has AVX2 ymm. Haswell leftover stays under `leftover/macos-x86_64-haswell-bigsur/` (Air only, not a second pin). rvp-design `1.0.6-max-autotune` uploads stay under `leftover/rvp-1.0.6-max/` (not a pin).
+Do **not** recut public **1.1.4** / **1.1.3** / **1.1.2**. **1.1.2** Linux ELF still has AVX2 ymm. Haswell leftover stays under `leftover/macos-x86_64-haswell-bigsur/` (Air only, not a second pin). rvp-design `1.0.6-max-autotune` uploads stay under `leftover/rvp-1.0.6-max/` (not a pin).
 
 ## Credit
 

@@ -1,6 +1,6 @@
 # gnfp-cminer — official $GNFP CPU miner (declared 5% dual-login miner fee)
-# 1.1.4 is scalar-only. Do not add -mavx2 / -msha to the default CFLAGS.
-VERSION ?= 1.1.4
+# 1.1.5 is scalar-only. Do not add -mavx2 / -msha to the default CFLAGS.
+VERSION ?= 1.1.5
 CC ?= cc
 CFLAGS ?= -O2 -Wall -Wextra -std=c11
 OPENSSL_PREFIX ?= $(shell brew --prefix openssl@3 2>/dev/null)

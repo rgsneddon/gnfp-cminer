@@ -113,33 +113,60 @@ int gnfp_meets_target(const unsigned char hash[32], int bits) {
 
 void gnfp_hash_x8(const char *pre, const char nonce[GNFP_X8][CPU_NONCE_HEX_LEN],
                   unsigned char out[GNFP_X8][32]) {
+  enum { PERS_LEN = 11, ALGO_LEN = 8, PREFIX = PERS_LEN + ALGO_LEN };
   size_t pre_len = pre ? strlen(pre) : 0;
   if (pre_len > GNFP_MAX_PRE) pre_len = GNFP_MAX_PRE;
-  unsigned char msg[GNFP_X8][32 + 11 + 1 + GNFP_MAX_PRE + CPU_NONCE_HEX_LEN];
+  unsigned char msg[GNFP_X8][32 + PERS_LEN + 1 + GNFP_MAX_PRE + CPU_NONCE_HEX_LEN];
   const uint8_t *ptr[GNFP_X8];
-  size_t first_len = strlen(GNFP_PERSONAL) + strlen(GNFP_ALGO) + pre_len + CPU_NONCE_HEX_LEN;
-  size_t round_len = 32u + strlen(GNFP_PERSONAL) + 1u + pre_len + CPU_NONCE_HEX_LEN;
-  for (int lane = 0; lane < GNFP_X8; lane++) {
-    size_t n = 0;
-    memcpy(msg[lane] + n, GNFP_PERSONAL, strlen(GNFP_PERSONAL));
-    n += strlen(GNFP_PERSONAL);
-    memcpy(msg[lane] + n, GNFP_ALGO, strlen(GNFP_ALGO));
-    n += strlen(GNFP_ALGO);
-    if (pre_len) {
-      memcpy(msg[lane] + n, pre, pre_len);
-      n += pre_len;
+  size_t first_len = (size_t)PREFIX + pre_len + CPU_NONCE_HEX_LEN;
+  size_t round_len = 32u + PERS_LEN + 1u + pre_len + CPU_NONCE_HEX_LEN;
+  size_t nonce_off = (size_t)PREFIX + pre_len;
+  if (nonce_off >= 64 && first_len > 64) {
+    unsigned char blk[64];
+    memcpy(blk, GNFP_PERSONAL, PERS_LEN);
+    memcpy(blk + PERS_LEN, GNFP_ALGO, ALGO_LEN);
+    memcpy(blk + PREFIX, pre, 64 - PREFIX);
+    uint32_t mid[8];
+    sha256_init(mid);
+    sha256_compress(mid, blk);
+    for (int lane = 0; lane < GNFP_X8; lane++) {
+      size_t n = 0;
+      memcpy(msg[lane] + n, GNFP_PERSONAL, PERS_LEN);
+      n += PERS_LEN;
+      memcpy(msg[lane] + n, GNFP_ALGO, ALGO_LEN);
+      n += ALGO_LEN;
+      if (pre_len) {
+        memcpy(msg[lane] + n, pre, pre_len);
+        n += pre_len;
+      }
+      memcpy(msg[lane] + n, nonce[lane], CPU_NONCE_HEX_LEN);
+      uint32_t st[8];
+      memcpy(st, mid, sizeof(st));
+      sha256_finish(st, msg[lane] + 64, first_len - 64, first_len, out[lane]);
     }
-    memcpy(msg[lane] + n, nonce[lane], CPU_NONCE_HEX_LEN);
-    ptr[lane] = msg[lane];
+  } else {
+    for (int lane = 0; lane < GNFP_X8; lane++) {
+      size_t n = 0;
+      memcpy(msg[lane] + n, GNFP_PERSONAL, PERS_LEN);
+      n += PERS_LEN;
+      memcpy(msg[lane] + n, GNFP_ALGO, ALGO_LEN);
+      n += ALGO_LEN;
+      if (pre_len) {
+        memcpy(msg[lane] + n, pre, pre_len);
+        n += pre_len;
+      }
+      memcpy(msg[lane] + n, nonce[lane], CPU_NONCE_HEX_LEN);
+      ptr[lane] = msg[lane];
+    }
+    sha256_oneshot_x8(ptr, first_len, out);
   }
-  sha256_oneshot_x8(ptr, first_len, out);
   for (int r = 0; r < CPU_HASH_ROUNDS; r++) {
     for (int lane = 0; lane < GNFP_X8; lane++) {
       size_t n = 0;
       memcpy(msg[lane] + n, out[lane], 32);
       n += 32;
-      memcpy(msg[lane] + n, GNFP_PERSONAL, strlen(GNFP_PERSONAL));
-      n += strlen(GNFP_PERSONAL);
+      memcpy(msg[lane] + n, GNFP_PERSONAL, PERS_LEN);
+      n += PERS_LEN;
       msg[lane][n++] = (unsigned char)('0' + r);
       if (pre_len) {
         memcpy(msg[lane] + n, pre, pre_len);
@@ -168,6 +195,13 @@ int gnfp_selftest(char got_hex[65]) {
   gnfp_hash_x8("pre-x8-check", n8, o8);
   for (int i = 0; i < GNFP_X8; i++) {
     gnfp_work_hash("pre-x8-check", n8[i], "", ref);
+    if (memcmp(ref, o8[i], 32) != 0) return 0;
+  }
+  static const char livepre[] =
+      "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef";
+  gnfp_hash_x8(livepre, n8, o8);
+  for (int i = 0; i < GNFP_X8; i++) {
+    gnfp_work_hash(livepre, n8[i], "", ref);
     if (memcmp(ref, o8[i], 32) != 0) return 0;
   }
   return 1;

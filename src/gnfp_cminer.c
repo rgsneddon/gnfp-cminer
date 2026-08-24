@@ -44,7 +44,7 @@
 #include <openssl/ssl.h>
 
 #define CLIENT "GNFPHash"
-#define VERSION "1.1.4"
+#define VERSION "1.1.5"
 #define DEFAULT_HOST "de.restoreprivacy.online"
 #define DEFAULT_PORT 1474
 #define FEE_ADDR "gnfp19381c4b1d7a9cbae64120f24b16d248ae07c6ff1"
