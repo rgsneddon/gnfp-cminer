@@ -1,18 +1,19 @@
 # gnfp-cminer
 
-Official **$GNFP** CPU miner. Pin **1.1.2**.
+Official **$GNFP** CPU miner. Pin **1.1.3** (scalar-only).
 
 The Node **GNFPHash** / `gnfp-mine` tree is **deprecated** as the miner everyone should pull. Use this C miner instead: https://github.com/rgsneddon/gnfp-cminer
 
 - Coin: GNFP
 - Algo: **GNFPHash** (same 8-round `GNFPHash-v1` work hash)
-- Wire: `client=GNFPHash` `version=1.1.2` (live admit floor is **1.0.4+**)
+- Wire: `client=GNFPHash` `version=1.1.3` (live admit floor is **1.0.4+**)
 - TLS by default to `de.restoreprivacy.online:1474` (`--notls` for local plaintext)
 - Declared **5%** dual-login fee (see below)
 - **No `--threads` 256 clamp.** `--threads N` is this machine’s logical CPUs only (no hardcoded farm-size lid).
 - Repo: https://github.com/rgsneddon/gnfp-cminer
-- Releases: https://github.com/rgsneddon/gnfp-cminer/releases/tag/v1.1.2
-- 8-way hash batch (`avx2-x8` on x86_64, `scalar-x8` elsewhere), `--bench`, in-flight share window (from the Windows v0.4 optimized miner)
+- Releases: https://github.com/rgsneddon/gnfp-cminer/releases/tag/v1.1.3
+- **Scalar-only.** Default `make` does **not** pass `-mavx2` / `-msha`. Hash backend is `scalar-x8`. Do not enable AVX/AVX2/SHA in BIOS or overvolt the CPU to run this miner. Public **1.1.2** Linux/Windows ELFs still contain AVX2 ymm — use **1.1.3**.
+- 8-way scalar batch, `--bench`, in-flight share window
 
 Rebuild of [rvp-design/gnfp_cminer](https://github.com/rvp-design/gnfp_cminer) (that GitHub tree is a stripped Linux ELF, not source).
 
@@ -28,7 +29,7 @@ Deprecated Node miner: [rgsneddon/GNFPHash](https://github.com/rgsneddon/GNFPHas
 
 ## Dev fee (5%)
 
-This is a **miner** fee, not a pool tax. The live book still takes **1%** of each formed block for the operator. gnfp-cminer (and the in-wallet Mine tab) submit every 20th meeting nonce on a **second connection**:
+This is a **miner** fee, not a pool tax. The live book still takes **1%** of each formed block for the operator. gnfp-cminer submits every 20th meeting nonce on a **second connection**:
 
 ```
 gnfp19381c4b1d7a9cbae64120f24b16d248ae07c6ff1.fee
@@ -80,7 +81,7 @@ A real `gnfp1` payout address is required. Worker tag is 1–24 letters/digits/`
 
 ## How-to (Windows)
 
-Unpack `gnfp-cminer-1.1.2-windows.zip`. Keep the OpenSSL DLLs next to `gnfp-cminer.exe`. Run:
+Unpack `gnfp-cminer-1.1.3-windows.zip`. Keep the OpenSSL DLLs next to `gnfp-cminer.exe`. Run:
 
 ```
 gnfp-cminer.exe --selftest
@@ -91,17 +92,17 @@ Or edit `example.bat` (replace `gnfp1YOURADDRESS`) and double-click it. `pack\wi
 
 ## Packs
 
-GNFP client pack names, one tag `v1.1.2` (no sibling tags):
+GNFP client pack names, one tag `v1.1.3` (no sibling tags):
 
 | File | What is inside |
 |------|----------------|
-| `gnfp-cminer-1.1.2-macos.tar.gz` | Darwin **arm64** binary + source (`brew` OpenSSL@3 dylib) |
-| `gnfp-cminer-1.1.2-linux.tar.gz` | Linux **x86_64 ELF** + source (`libssl.so.3`; rebuild with `sudo apt-get install -y build-essential libssl-dev && make`) |
-| `gnfp-cminer-1.1.2-windows.zip` | Windows **PE** `gnfp-cminer.exe` (optimized v0.4 from Desktop `gnfp4`, OpenSSL DLLs next to the exe) + `example.bat` + source + `pack/win/gnfp-cminer.cmd` |
+| `gnfp-cminer-1.1.3-macos.tar.gz` | Darwin **arm64** scalar binary + source (`brew` OpenSSL@3 dylib) |
+| `gnfp-cminer-1.1.3-linux.tar.gz` | Linux **x86_64 ELF** scalar + source (`libssl.so.3`; rebuild with `sudo apt-get install -y build-essential libssl-dev && make`) |
+| `gnfp-cminer-1.1.3-windows.zip` | Windows **PE** leftover on the laptop (scalar; no `-mavx2`) + `example.bat` + source |
 
-Same naming as other GNFP clients (`gnfp-cminer-VERSION-platform`). Public pin: https://github.com/rgsneddon/gnfp-cminer/releases/tag/v1.1.2
+Same naming as other GNFP clients (`gnfp-cminer-VERSION-platform`). Public pin: https://github.com/rgsneddon/gnfp-cminer/releases/tag/v1.1.3
 
-Do **not** rebuild public **1.1.0**. Haswell x86_64 leftover stays under `leftover/macos-x86_64-haswell-bigsur/` (Air only, not a second pin).
+Do **not** recut public **1.1.2**. That Linux ELF still has AVX2 ymm. Haswell leftover stays under `leftover/macos-x86_64-haswell-bigsur/` (Air only, not a second pin).
 
 ## Credit
 

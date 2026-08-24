@@ -6,6 +6,10 @@
 
 #include <string.h>
 
+#if defined(__AVX2__) && !defined(GNFP_ALLOW_AVX2)
+#error "gnfp-cminer 1.1.3 default build is scalar-only. Do not pass -mavx2 (that SIGILL/voltage path is 1.1.2)."
+#endif
+
 #if defined(__AVX2__)
 #include <immintrin.h>
 #endif

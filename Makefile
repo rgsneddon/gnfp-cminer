@@ -1,11 +1,8 @@
 # gnfp-cminer — official $GNFP CPU miner (declared 5% dual-login miner fee)
-VERSION ?= 1.1.2
+# 1.1.3 is scalar-only. Do not add -mavx2 / -msha to the default CFLAGS.
+VERSION ?= 1.1.3
 CC ?= cc
 CFLAGS ?= -O2 -Wall -Wextra -std=c11
-UNAME_M := $(shell uname -m)
-ifeq ($(UNAME_M),x86_64)
-  CFLAGS += -mavx2
-endif
 OPENSSL_PREFIX ?= $(shell brew --prefix openssl@3 2>/dev/null)
 ifeq ($(OPENSSL_PREFIX),)
   SSL_CFLAGS := $(shell pkg-config --cflags openssl 2>/dev/null)
@@ -39,6 +36,7 @@ test: selftest
 	node tests/test_admit.mjs
 	node tests/test_local_stratum.mjs
 	node tests/test_readme.mjs
+	node tests/test_scalar_isa.mjs
 	sh tests/test_private_host.sh
 
 pack-macos: $(BIN)
