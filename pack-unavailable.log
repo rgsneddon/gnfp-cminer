@@ -1,6 +1,6 @@
 This Mac (arm64 Darwin) links the macos pack locally.
-Linux x86_64 ELF is built on Germany (`libssl.so.3`) and copied into gnfp-cminer-1.1.1-linux.tar.gz.
-Windows PE is MinGW-w64 posix + static OpenSSL 3.0.16 (no extra DLL) and copied into gnfp-cminer-1.1.1-windows.zip.
+Linux x86_64 ELF is built on Germany (`libssl.so.3`) and copied into gnfp-cminer-1.1.4-linux.tar.gz.
+Windows PE is MinGW-w64 posix + static OpenSSL 3.0.16 (no extra DLL) and copied into gnfp-cminer-1.1.4-windows.zip.
 This log is only copied into a pack when LINUX_BIN / WIN_BIN is unset.
-Pack names: gnfp-cminer-1.1.1-{macos,linux,windows} on public tag v1.1.1 (no sibling tags).
-https://github.com/rgsneddon/gnfp-cminer/releases/tag/v1.1.1
+Pack names: gnfp-cminer-1.1.4-{macos,linux,windows} on public tag v1.1.4 (no sibling tags).
+https://github.com/rgsneddon/gnfp-cminer/releases/tag/v1.1.4

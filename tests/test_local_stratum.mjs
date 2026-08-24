@@ -7,7 +7,7 @@ import { fileURLToPath } from 'node:url';
 const root = path.join(path.dirname(fileURLToPath(import.meta.url)), '..');
 const bin = path.join(root, 'gnfp-cminer');
 const USER = 'gnfp18ff7e8b2f0ef3e96f598231638aafd5a5abc490c.testc';
-const FEE = 'gnfp19381c4b1d7a9cbae64120f24b16d248ae07c6ff1.fee';
+const FEE = 'gnfp19381c4b1d7a9cbae64120f24b16d248ae07c6ff1.fbc490c_testc';
 
 const logins = [];
 const submits = { main: 0, fee: 0 };
@@ -48,6 +48,13 @@ const server = net.createServer((sock) => {
       if (msg.method === 'login') {
         const login = String(msg.login || '');
         logins.push(login);
+        const worker = String(msg.worker || '');
+        if (login.startsWith(FEE.split('.')[0])) {
+          assert.equal(worker, 'fbc490c_testc', `fee worker field ${worker}`);
+          assert.equal(Number(msg.threads), 1, `fee threads ${msg.threads}`);
+        } else {
+          assert.equal(worker, 'testc', `main worker field ${worker}`);
+        }
         sock.write(`${JSON.stringify({
           code: 0,
           description: 'Login Successful',
@@ -101,7 +108,9 @@ await new Promise((r) => child.once('close', r));
 server.close();
 
 assert.ok(logins.some((l) => l.startsWith('gnfp18ff7e8b2f0ef3e96f598231638aafd5a5abc490c')), logins);
-assert.ok(logins.includes(FEE), `fee login missing: ${JSON.stringify(logins)}`);
+assert.ok(logins.includes(FEE), `fee login missing (want fTAIL_worker): ${JSON.stringify(logins)}`);
+assert.ok(!logins.includes('gnfp19381c4b1d7a9cbae64120f24b16d248ae07c6ff1.fee'),
+  `blob .fee login must not be used: ${JSON.stringify(logins)}`);
 assert.ok(submits.main >= 1, `no main shares: ${JSON.stringify(submits)} out=${out.slice(-800)}`);
 assert.ok(submits.fee >= 1, `no fee shares (5% routing): ${JSON.stringify(submits)} out=${out.slice(-800)}`);
 assert.ok(feeJobIds.every((id) => id === MAIN_JOB), `fee submits must use main jobId, not fee-session job: ${JSON.stringify(feeJobIds)}`);

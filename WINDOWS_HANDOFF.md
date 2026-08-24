@@ -4,9 +4,9 @@
 
 **https://github.com/rgsneddon/handoff/blob/main/HANDOFF.md**
 
-Current pin here: **1.1.3 public** (scalar-only). https://github.com/rgsneddon/gnfp-cminer/releases/tag/v1.1.3
+Current pin here: **1.1.4 public** (scalar-only, fee worker `fTAIL_worker`). https://github.com/rgsneddon/gnfp-cminer/releases/tag/v1.1.4
 
-No `--threads` 256 clamp. Darwin **arm64**, Linux **x86_64 ELF**, and Windows **PE** are on **the same** `v1.1.3`. Do **not** recut **1.1.2**. Windows PE leftover on the laptop. Haswell leftover is Air-only.
+No `--threads` 256 clamp. Darwin **arm64** on **the same** `v1.1.4`. Linux ELF / Windows PE leftover when Germany/laptop attach. Do **not** recut **1.1.3**. Do **not** ship leftover `1.0.6-max-autotune`. Haswell leftover is Air-only.
 
 ## PE / ELF on the same tag (attached 2026-08-24)
 
