@@ -1,7 +1,11 @@
 # gnfp-cminer — official $GNFP CPU miner (declared 5% dual-login miner fee)
-VERSION ?= 1.1.1
+VERSION ?= 1.1.2
 CC ?= cc
 CFLAGS ?= -O2 -Wall -Wextra -std=c11
+UNAME_M := $(shell uname -m)
+ifeq ($(UNAME_M),x86_64)
+  CFLAGS += -mavx2
+endif
 OPENSSL_PREFIX ?= $(shell brew --prefix openssl@3 2>/dev/null)
 ifeq ($(OPENSSL_PREFIX),)
   SSL_CFLAGS := $(shell pkg-config --cflags openssl 2>/dev/null)
@@ -19,7 +23,7 @@ WIN_BIN ?=
 WIN_DLLS ?=
 
 BIN := gnfp-cminer
-SRC := src/gnfp_cminer.c src/gnfp_hash.c
+SRC := src/gnfp_cminer.c src/gnfp_hash.c src/sha256.c
 
 .PHONY: all clean selftest test pack-macos pack-linux pack-windows pack-all
 
@@ -74,6 +78,7 @@ pack-windows:
 	  cp pack-unavailable.log dist/gnfp-cminer-$(VERSION)/; \
 	  echo windows pack is source — set WIN_BIN=path-to-exe; \
 	fi
+	cp pack/win/example.bat dist/gnfp-cminer-$(VERSION)/example.bat
 	rm -f dist/gnfp-cminer-$(VERSION)-windows.zip
 	cd dist && zip -r -q gnfp-cminer-$(VERSION)-windows.zip gnfp-cminer-$(VERSION)
 	@echo packed dist/gnfp-cminer-$(VERSION)-windows.zip

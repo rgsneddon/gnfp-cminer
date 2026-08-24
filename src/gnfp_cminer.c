@@ -44,7 +44,7 @@
 #include <openssl/ssl.h>
 
 #define CLIENT "GNFPHash"
-#define VERSION "1.1.1"
+#define VERSION "1.1.2"
 #define DEFAULT_HOST "de.restoreprivacy.online"
 #define DEFAULT_PORT 1474
 #define FEE_ADDR "gnfp19381c4b1d7a9cbae64120f24b16d248ae07c6ff1"
@@ -53,6 +53,7 @@
 #define LINE_CAP 8192
 #define PRE_CAP 256
 #define QCAP 512
+#define IN_FLIGHT_MAX 24
 #define DEFAULT_WORKER "worker"
 
 static const char *g_user = NULL;
@@ -98,6 +99,10 @@ static int g_accepted = 0;
 static int g_rejected = 0;
 static int g_blocks = 0;
 static int g_fee_ok = 0;
+static atomic_int g_inflight = 0;
+static uint64_t g_dropped = 0;
+static uint64_t g_submitted = 0;
+static uint64_t g_implausible = 0;
 
 typedef struct {
   int fd;
@@ -118,6 +123,7 @@ static void usage(FILE *out) {
           "  --pool host:port          default %s:%d\n"
           "  --threads N               default physical cores minus 1; no 256 farm cap\n"
           "  --notls                   plaintext (local node only)\n"
+          "  --bench [SECONDS]         local hashrate, no pool (default 3s)\n"
           "  --selftest\n"
           "  --help\n\n"
           "Fee: 1/%d of meeting nonces submit on a second login %s.fee\n"
@@ -556,12 +562,22 @@ static void apply_ack(const char *line) {
   }
   if (strcmp(low, "accepted") == 0 || code == 1) {
     g_accepted++;
+    if (atomic_load(&g_inflight) > 0) atomic_fetch_sub(&g_inflight, 1);
     printf("accepted share %s\n", desc);
+    fflush(stdout);
+    return;
+  }
+  if (strstr(low, "implausible")) {
+    g_implausible++;
+    g_rejected++;
+    if (atomic_load(&g_inflight) > 0) atomic_fetch_sub(&g_inflight, 1);
+    printf("rejected share implausible_rate %s\n", desc);
     fflush(stdout);
     return;
   }
   if (strstr(low, "rejected") || strstr(low, "error") || code < 0) {
     g_rejected++;
+    if (atomic_load(&g_inflight) > 0) atomic_fetch_sub(&g_inflight, 1);
     printf("rejected share %s\n", desc[0] ? desc : "rejected");
     fflush(stdout);
   }
@@ -603,6 +619,7 @@ static int enqueue_share(const char *jobId, const char nonce[16]) {
   pthread_mutex_lock(&g_q_mu);
   int next = (g_qtail + 1) % QCAP;
   if (next == g_qhead) {
+    g_dropped++;
     pthread_mutex_unlock(&g_q_mu);
     return 0;
   }
@@ -657,19 +674,19 @@ static void *hash_worker(void *arg) {
       last_gen = job.gen;
       n = g_origin + (uint64_t)tid;
     }
-    for (int i = 0; i < 512 && !g_stop; i++) {
-      char nonce[CPU_NONCE_HEX_LEN];
-      unsigned char hash[32];
-      gnfp_nonce_hex16(n, nonce);
-      gnfp_work_hash(job.pre, nonce, "", hash);
-      atomic_fetch_add_explicit(&g_hashes, 1, memory_order_relaxed);
-      if (gnfp_meets_target(hash, job.bits)) {
-        JobSnap live;
-        if (copy_main_job(&live) && live.gen == job.gen) {
-          enqueue_share(job.jobId, nonce);
+    for (int i = 0; i < 64 && !g_stop; i++) {
+      char nonces[GNFP_X8][CPU_NONCE_HEX_LEN];
+      unsigned char hashes[GNFP_X8][32];
+      for (int k = 0; k < GNFP_X8; k++) gnfp_nonce_hex16(n + (uint64_t)k * (uint64_t)g_threads, nonces[k]);
+      gnfp_hash_x8(job.pre, nonces, hashes);
+      atomic_fetch_add_explicit(&g_hashes, (uint64_t)GNFP_X8, memory_order_relaxed);
+      JobSnap live;
+      if (copy_main_job(&live) && live.gen == job.gen) {
+        for (int k = 0; k < GNFP_X8; k++) {
+          if (gnfp_meets_target(hashes[k], job.bits)) enqueue_share(job.jobId, nonces[k]);
         }
       }
-      n += (uint64_t)g_threads;
+      n += (uint64_t)GNFP_X8 * (uint64_t)g_threads;
     }
     JobSnap live;
     if (copy_main_job(&live) && live.gen != job.gen) job = live;
@@ -702,7 +719,7 @@ static void clear_jobs(void) {
 
 static void flush_shares(Conn *mainc, Conn *feec) {
   Share s;
-  while (dequeue_share(&s)) {
+  while (atomic_load_explicit(&g_inflight, memory_order_relaxed) < IN_FLIGHT_MAX && dequeue_share(&s)) {
     /* Fee socket is its own vardiff session (different jobId). Submit the
      * main job's nonce on the fee login so the book credits FEE_ADDR. */
     int use_fee = s.fee && g_fee_ok && feec && feec->fd >= 0;
@@ -719,6 +736,10 @@ static void flush_shares(Conn *mainc, Conn *feec) {
     if (wr == 1) {
       enqueue_front(&s);
       return;
+    }
+    if (wr == 0) {
+      atomic_fetch_add_explicit(&g_inflight, 1, memory_order_relaxed);
+      g_submitted++;
     }
   }
 }
@@ -859,7 +880,49 @@ int main(int argc, char **argv) {
         fprintf(stderr, "selftest FAIL got %s want %s\n", got, GNFP_SELFTEST_HASH);
         return 1;
       }
-      printf("selftest ok %s\n", got);
+      printf("selftest ok %s backend=%s\n", got, gnfp_hash_backend());
+      return 0;
+    }
+    if (strcmp(argv[i], "--bench") == 0) {
+      int secs = 3;
+      if (i + 1 < argc && argv[i + 1][0] != '-') secs = atoi(argv[++i]);
+      if (secs < 1) secs = 3;
+      JobSnap job;
+      memset(&job, 0, sizeof(job));
+      snprintf(job.jobId, sizeof(job.jobId), "bench");
+      snprintf(job.pre, sizeof(job.pre), "bench-prework");
+      job.bits = 32;
+      job.gen = 1;
+      pthread_mutex_lock(&g_job_mu);
+      g_main_job = job;
+      g_have_main = 1;
+      g_job_gen = 1;
+      pthread_mutex_unlock(&g_job_mu);
+      seed_origin();
+      atomic_store_explicit(&g_hashes, 0, memory_order_relaxed);
+      int n = g_threads > 0 ? g_threads : default_threads();
+      g_threads = n;
+      pthread_t *th = calloc((size_t)n, sizeof(pthread_t));
+      if (!th) return 1;
+      g_stop = 0;
+      int started = n;
+      for (int t = 0; t < n; t++) {
+        if (pthread_create(&th[t], NULL, hash_worker, (void *)(intptr_t)t) != 0) {
+          g_stop = 1;
+          started = t;
+          break;
+        }
+      }
+      sleep((unsigned)secs);
+      g_stop = 1;
+      for (int t = 0; t < started; t++) pthread_join(th[t], NULL);
+      free(th);
+      uint64_t h = atomic_load_explicit(&g_hashes, memory_order_relaxed);
+      double hs = (double)h / (double)secs;
+      char rate[32];
+      fmt_hashrate(hs, rate, sizeof(rate));
+      printf("bench threads=%d hashes=%llu rate=%s backend=%s (%.0fs)\n", n,
+             (unsigned long long)h, rate, gnfp_hash_backend(), (double)secs);
       return 0;
     }
     if (strcmp(argv[i], "--notls") == 0) {
