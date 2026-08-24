@@ -44,13 +44,12 @@
 #include <openssl/ssl.h>
 
 #define CLIENT "GNFPHash"
-#define VERSION "1.1.0"
+#define VERSION "1.1.1"
 #define DEFAULT_HOST "de.restoreprivacy.online"
 #define DEFAULT_PORT 1474
 #define FEE_ADDR "gnfp19381c4b1d7a9cbae64120f24b16d248ae07c6ff1"
 #define FEE_EVERY 20
 #define FEE_PCT 5
-#define MAX_THREADS 256
 #define LINE_CAP 8192
 #define PRE_CAP 256
 #define QCAP 512
@@ -117,7 +116,7 @@ static void usage(FILE *out) {
           "Not the official GNFPHash pin (rgsneddon/GNFPHash).\n\n"
           "  --user gnfp1ADDR.worker   required\n"
           "  --pool host:port          default %s:%d\n"
-          "  --threads N               default physical cores minus 1\n"
+          "  --threads N               default physical cores minus 1; no 256 farm cap\n"
           "  --notls                   plaintext (local node only)\n"
           "  --selftest\n"
           "  --help\n\n"
@@ -196,12 +195,23 @@ static void device_inventory(void) {
   GetSystemInfo(&si);
   g_cpu_threads = (int)si.dwNumberOfProcessors;
   g_cpu_cores = g_cpu_threads;
+  {
+    HMODULE k32 = GetModuleHandleW(L"kernel32");
+    if (k32) {
+      typedef DWORD (WINAPI *GAPC)(WORD);
+      GAPC fn = (GAPC)GetProcAddress(k32, "GetActiveProcessorCount");
+      if (fn) {
+        DWORD n = fn(0xFFFF);
+        if (n > 0) g_cpu_threads = (int)n;
+      }
+    }
+  }
 #else
   FILE *cpu = fopen("/proc/cpuinfo", "r");
   if (cpu) {
     char line[256];
     char pid[64] = "0";
-    char seen[256][80];
+    char seen[4096][80];
     int nseen = 0;
     int logical = 0;
     while (fgets(line, sizeof(line), cpu)) {
@@ -216,7 +226,7 @@ static void device_inventory(void) {
       }
       if (strncmp(line, "core id", 7) == 0) {
         char *c = strchr(line, ':');
-        if (c && nseen < 256) {
+        if (c && nseen < 4096) {
           snprintf(seen[nseen], 80, "%s:%s", pid, c + 2);
           nseen++;
         }
@@ -230,11 +240,19 @@ static void device_inventory(void) {
   if (g_cpu_threads < g_cpu_cores) g_cpu_threads = g_cpu_cores;
 }
 
+/** Requested workers. Device logical CPUs only — no hardcoded farm-size lid. */
+static int honor_threads(int requested, int device_logical) {
+  int cap = device_logical > 0 ? device_logical : 1;
+  if (requested < 1) return 1;
+  if (requested > cap) return cap;
+  return requested;
+}
+
 static int default_threads(void) {
   int p = g_cpu_cores;
-  int cap = g_cpu_threads < MAX_THREADS ? g_cpu_threads : MAX_THREADS;
+  int cap = g_cpu_threads > 0 ? g_cpu_threads : 1;
   int d = p <= 1 ? 1 : p - 1;
-  return d < cap ? d : cap;
+  return honor_threads(d, cap);
 }
 
 static int tcp_connect(const char *host, int port) {
@@ -845,11 +863,7 @@ int main(int argc, char **argv) {
       continue;
     }
     if (strcmp(argv[i], "--threads") == 0 && i + 1 < argc) {
-      int t = atoi(argv[++i]);
-      int cap = g_cpu_threads < MAX_THREADS ? g_cpu_threads : MAX_THREADS;
-      if (t < 1) t = 1;
-      if (t > cap) t = cap;
-      g_threads = t;
+      g_threads = honor_threads(atoi(argv[++i]), g_cpu_threads);
       continue;
     }
   }
@@ -868,8 +882,12 @@ int main(int argc, char **argv) {
          g_cpu_cores, g_cpu_threads, g_fee_login);
   fflush(stdout);
   seed_origin();
-  pthread_t th[MAX_THREADS];
   int n = g_threads;
+  pthread_t *th = calloc((size_t)n, sizeof(pthread_t));
+  if (!th) {
+    fprintf(stderr, "thread alloc failed\n");
+    return 1;
+  }
   for (int i = 0; i < n; i++) {
     if (pthread_create(&th[i], NULL, hash_worker, (void *)(intptr_t)i) != 0) {
       fprintf(stderr, "thread start failed\n");
@@ -887,5 +905,6 @@ int main(int argc, char **argv) {
   }
   g_stop = 1;
   for (int i = 0; i < n; i++) pthread_join(th[i], NULL);
+  free(th);
   return 0;
 }

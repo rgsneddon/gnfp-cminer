@@ -1,5 +1,5 @@
 # gnfp-cminer — official $GNFP CPU miner (declared 5% dual-login miner fee)
-VERSION ?= 1.1.0
+VERSION ?= 1.1.1
 CC ?= cc
 CFLAGS ?= -O2 -Wall -Wextra -std=c11
 OPENSSL_PREFIX ?= $(shell brew --prefix openssl@3 2>/dev/null)

@@ -1,16 +1,17 @@
 # gnfp-cminer
 
-Official **$GNFP** CPU miner. Pin **1.1.0**.
+Official **$GNFP** CPU miner. Pin **1.1.1**.
 
 The Node **GNFPHash** / `gnfp-mine` tree is **deprecated** as the miner everyone should pull. Use this C miner instead: https://github.com/rgsneddon/gnfp-cminer
 
 - Coin: GNFP
 - Algo: **GNFPHash** (same 8-round `GNFPHash-v1` work hash)
-- Wire: `client=GNFPHash` `version=1.1.0` (live admit floor is **1.0.4+**)
+- Wire: `client=GNFPHash` `version=1.1.1` (live admit floor is **1.0.4+**)
 - TLS by default to `de.restoreprivacy.online:1474` (`--notls` for local plaintext)
 - Declared **5%** dual-login fee (see below)
+- **No `--threads` 256 clamp.** `--threads N` is this machine’s logical CPUs only (no hardcoded farm-size lid).
 - Repo: https://github.com/rgsneddon/gnfp-cminer
-- Releases: https://github.com/rgsneddon/gnfp-cminer/releases/tag/v1.1.0
+- Releases: https://github.com/rgsneddon/gnfp-cminer/releases/tag/v1.1.1
 
 Rebuild of [rvp-design/gnfp_cminer](https://github.com/rvp-design/gnfp_cminer) (that GitHub tree is a stripped Linux ELF, not source).
 
@@ -72,13 +73,13 @@ Local node (plaintext):
 ./gnfp-cminer --pool 127.0.0.1:1474 --notls --user gnfp1YOURADDRESS.worker --threads 4
 ```
 
-`--threads` is real POSIX threads, cap = this machine’s logical CPUs (max 256). Default = physical cores minus 1.
+`--threads` is real POSIX threads. There is **no `--threads` 256 clamp** and no other hardcoded farm-size lid. Cap = this machine’s logical CPUs. Default = physical cores minus 1. A 240-thread box may pass `--threads 240`.
 
 A real `gnfp1` payout address is required. Worker tag is 1–24 letters/digits/`_`/`-` (default `worker`). TLS to `de.restoreprivacy.online:1474` is the default.
 
 ## How-to (Windows)
 
-Unpack `gnfp-cminer-1.1.0-windows.zip`. Run:
+Unpack `gnfp-cminer-1.1.1-windows.zip`. Run:
 
 ```
 gnfp-cminer.exe --selftest
@@ -89,17 +90,17 @@ gnfp-cminer.exe --user gnfp1YOURADDRESS.worker --threads 4
 
 ## Packs
 
-GNFP client pack names, one tag `v1.1.0` (no sibling tags):
+GNFP client pack names, one tag `v1.1.1` (no sibling tags):
 
 | File | What is inside |
 |------|----------------|
-| `gnfp-cminer-1.1.0-macos.tar.gz` | Darwin **arm64** binary + source (`brew` OpenSSL@3 dylib) |
-| `gnfp-cminer-1.1.0-linux.tar.gz` | Linux **x86_64 ELF** + source (`libssl.so.3`; rebuild with `sudo apt-get install -y build-essential libssl-dev && make`) |
-| `gnfp-cminer-1.1.0-windows.zip` | Windows **PE** `gnfp-cminer.exe` (static OpenSSL, no extra DLL) + source + `pack/win/gnfp-cminer.cmd` |
+| `gnfp-cminer-1.1.1-macos.tar.gz` | Darwin **arm64** binary + source (`brew` OpenSSL@3 dylib) |
+| `gnfp-cminer-1.1.1-linux.tar.gz` | Linux **x86_64 ELF** + source when the laptop leftover is attached (`libssl.so.3`; rebuild with `sudo apt-get install -y build-essential libssl-dev && make`) |
+| `gnfp-cminer-1.1.1-windows.zip` | Windows **PE** `gnfp-cminer.exe` (static OpenSSL, no extra DLL) when the laptop leftover is attached + source + `pack/win/gnfp-cminer.cmd` |
 
-Same naming as other GNFP clients (`gnfp-cminer-VERSION-platform`). Public pin: https://github.com/rgsneddon/gnfp-cminer/releases/tag/v1.1.0
+Same naming as other GNFP clients (`gnfp-cminer-VERSION-platform`). Public pin: https://github.com/rgsneddon/gnfp-cminer/releases/tag/v1.1.1
 
-Haswell x86_64 leftover stays under `leftover/macos-x86_64-haswell-bigsur/` (Air only, not a second pin).
+Do **not** rebuild public **1.1.0**. Haswell x86_64 leftover stays under `leftover/macos-x86_64-haswell-bigsur/` (Air only, not a second pin).
 
 ## Credit
 
