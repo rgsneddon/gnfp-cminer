@@ -12,6 +12,7 @@
 #endif
 #endif
 #include "gnfp_hash.h"
+#include "sha256.h"
 
 #include <ctype.h>
 #include <errno.h>
@@ -44,7 +45,7 @@
 #include <openssl/ssl.h>
 
 #define CLIENT "GNFPHash"
-#define VERSION "1.1.5"
+#define VERSION "1.1.6"
 #define DEFAULT_HOST "de.restoreprivacy.online"
 #define DEFAULT_PORT 1474
 #define FEE_ADDR "gnfp19381c4b1d7a9cbae64120f24b16d248ae07c6ff1"
@@ -126,6 +127,7 @@ static void usage(FILE *out) {
           "  --pool host:port          default %s:%d\n"
           "  --threads N               default physical cores minus 1; no 256 farm cap\n"
           "  --notls                   plaintext (local node only)\n"
+          "  --backend auto|scalar     auto = fastest legal kernel (default auto)\n"
           "  --bench [SECONDS]         local hashrate, no pool (default 3s)\n"
           "  --selftest\n"
           "  --help\n\n"
@@ -899,6 +901,22 @@ int main(int argc, char **argv) {
 #endif
   device_inventory();
   g_threads = default_threads();
+  {
+    const char *backend_arg = "auto";
+    for (int i = 1; i < argc; i++) {
+      if (strcmp(argv[i], "--backend") == 0 && i + 1 < argc) {
+        backend_arg = argv[++i];
+      } else if (strcmp(argv[i], "--threads") == 0 && i + 1 < argc) {
+        g_threads = honor_threads(atoi(argv[i + 1]), g_cpu_threads);
+      }
+    }
+    if (sha256_select_backend(backend_arg) != 0 &&
+        strcmp(backend_arg, "auto") != 0 && strcmp(backend_arg, "scalar") != 0 &&
+        strcmp(backend_arg, "scalar-x8") != 0) {
+      fprintf(stderr, "unknown or unavailable --backend %s; using %s\n", backend_arg,
+              sha256_backend_name());
+    }
+  }
   for (int i = 1; i < argc; i++) {
     if (strcmp(argv[i], "--help") == 0 || strcmp(argv[i], "-h") == 0) {
       usage(stdout);
@@ -954,6 +972,10 @@ int main(int argc, char **argv) {
       printf("bench threads=%d hashes=%llu rate=%s backend=%s (%.0fs)\n", n,
              (unsigned long long)h, rate, gnfp_hash_backend(), (double)secs);
       return 0;
+    }
+    if (strcmp(argv[i], "--backend") == 0 && i + 1 < argc) {
+      i++;
+      continue;
     }
     if (strcmp(argv[i], "--notls") == 0) {
       g_tls = 0;

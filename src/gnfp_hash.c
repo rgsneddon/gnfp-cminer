@@ -180,7 +180,7 @@ void gnfp_hash_x8(const char *pre, const char nonce[GNFP_X8][CPU_NONCE_HEX_LEN],
 }
 
 const char *gnfp_hash_backend(void) {
-  return sha256_have_avx2() ? "avx2-x8" : "scalar-x8";
+  return sha256_backend_name();
 }
 
 int gnfp_selftest(char got_hex[65]) {

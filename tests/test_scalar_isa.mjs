@@ -10,13 +10,23 @@ const mk = fs.readFileSync(path.join(root, 'Makefile'), 'utf8');
 assert.doesNotMatch(mk, /CFLAGS \+= -mavx2/);
 assert.doesNotMatch(mk, /CFLAGS \+= -msha/);
 assert.doesNotMatch(mk, /^\s*CFLAGS \+= /m);
-assert.match(mk, /VERSION \?= 1\.1\.5/);
+assert.match(mk, /VERSION \?= 1\.1\.6/);
+assert.match(mk, /sha256_ni\.o/);
+assert.match(mk, /sha256_avx2\.o/);
 const src = fs.readFileSync(path.join(root, 'src/gnfp_cminer.c'), 'utf8');
-assert.match(src, /#define VERSION "1\.1\.5"/);
-assert.doesNotMatch(src, /#define VERSION "1\.1\.4"/);
+assert.match(src, /#define VERSION "1\.1\.6"/);
+assert.doesNotMatch(src, /#define VERSION "1\.1\.5"/);
+assert.match(src, /--backend/);
 const sha = fs.readFileSync(path.join(root, 'src/sha256.c'), 'utf8');
 assert.match(sha, /GNFP_ALLOW_AVX2/);
 assert.match(sha, /scalar-only/);
+const ni = fs.readFileSync(path.join(root, 'src/sha256_ni.c'), 'utf8');
+assert.match(ni, /sha256_compress_ni/);
+assert.match(ni, /i \+ 64 <= len/);
+assert.doesNotMatch(ni, /1\.0\.6-max/);
+const help = src;
+assert.doesNotMatch(help, /overvolt the CPU to run/i);
+assert.doesNotMatch(src, /unlock AVX offset/i);
 
 const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'gnfp-scalar-'));
 const obj = path.join(tmp, 'sha256.o');
@@ -45,11 +55,29 @@ const avx2Try = spawnSync(
 assert.notEqual(avx2Try.status, 0, ' -mavx2 must fail the scalar-only #error');
 assert.match(`${avx2Try.stderr || ''}\n${avx2Try.stdout || ''}`, /scalar-only|AVX2|mavx2/i);
 
-const bin = path.join(root, 'gnfp-cminer');
-if (fs.existsSync(bin) && fs.constants && true) {
+const avx2Obj = path.join(tmp, 'sha256_avx2.o');
+const avx2Ok = spawnSync(
+  clang,
+  ['-c', '-O2', '-std=c11', '-mavx2', '-DGNFP_ALLOW_AVX2', '-o', avx2Obj, path.join(root, 'src/sha256_avx2.c')],
+  { encoding: 'utf8' },
+);
+assert.equal(avx2Ok.status, 0, avx2Ok.stderr || avx2Ok.stdout);
+
+function minerBin() {
+  const exe = path.join(root, process.platform === 'win32' ? 'gnfp-cminer.exe' : 'gnfp-cminer');
+  if (fs.existsSync(exe)) return exe;
+  const bare = path.join(root, 'gnfp-cminer');
+  return fs.existsSync(bare) ? bare : null;
+}
+const bin = minerBin();
+if (bin) {
   const st = execFileSync(bin, ['--selftest'], { encoding: 'utf8' });
   assert.match(st, /selftest ok 986437c40fee8a876e0ca3f1e58b14fa38785a179f57f98ebbb0fb03102bd4eb/);
-  assert.match(st, /backend=scalar-x8/);
-  assert.doesNotMatch(st, /backend=avx2-x8/);
+  assert.match(st, /backend=(scalar-x8|sha-ni|avx2-x8)/);
+  const sc = execFileSync(bin, ['--backend', 'scalar', '--selftest'], { encoding: 'utf8' });
+  assert.match(sc, /selftest ok 986437c40fee8a876e0ca3f1e58b14fa38785a179f57f98ebbb0fb03102bd4eb/);
+  assert.match(sc, /backend=scalar-x8/);
+  assert.doesNotMatch(sc, /backend=avx2-x8/);
+  assert.doesNotMatch(sc, /backend=sha-ni/);
 }
 console.log('scalar-only ISA gate ok');
