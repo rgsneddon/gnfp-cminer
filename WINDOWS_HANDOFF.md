@@ -8,11 +8,11 @@ Current pin here: **0.5 public**. https://github.com/rgsneddon/gnfp-cminer/relea
 
 Same hasher as **0.4**. Wire `client=GNFPHash` `version=0.5`. Do **not** recut **0.4**. Do **not** ship leftover `1.0.6-max-autotune`.
 
-Darwin **arm64** + Linux **x86_64 ELF** are on **the same** `v0.5`. **Leftover (do this now):** Windows PE attach to **the same** `v0.5`.
+Darwin **arm64** DMG + Linux **x86_64 ELF** + Windows **PE** (`gnfp-cminer.exe` + `example.bat` at zip root) are on **the same** `v0.5`.
 
-## PE leftover — do this now (not yet attached)
+## PE leftover — **done** (attached to `v0.5`)
 
-Build from `rgsneddon/gnfp-cminer` tag **`v0.5`** (not 0.4, not 1.1.6). Same OpenSSL as other PE leftovers. Put `gnfp-cminer.exe` at the zip root (DLLs next to it if the PE is not static). `example.bat` is already in the source zip on the tag — `--clobber` the PE zip onto **the same** `v0.5`. **No sibling tag.**
+`gnfp-cminer-0.5-windows.zip` has `gnfp-cminer.exe` at the zip root plus `example.bat`. Static PE (no extra DLLs). `--clobber` onto **the same** `v0.5`. **No sibling tag.**
 
 ```
 gnfp-cminer.exe --selftest
