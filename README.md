@@ -8,7 +8,7 @@ The Node **GNFPHash** / `gnfp-mine` tree is **deprecated** as the miner everyone
 
 - Coin: GNFP
 - Algo: **GNFPHash** (same 8-round `GNFPHash-v1` work hash)
-- Wire: `client=GNFPHash` `version=1.1.2` (live admit floor is **1.0.4+**)
+- Wire: `client=GNFPHash` `version=0.5` (live admit floor is **1.0.4+**; pin **0.4** / **0.5** also admit)
 - TLS by default to `de.restoreprivacy.online:1474` (`--notls` for local plaintext)
 - Declared **5%** dual-login fee (see below)
 - **No `--threads` 256 clamp.** `--threads N` is this machine’s logical CPUs only (no hardcoded farm-size lid).

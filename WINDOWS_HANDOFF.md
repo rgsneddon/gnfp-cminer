@@ -6,7 +6,7 @@
 
 Current pin here: **0.5 public**. https://github.com/rgsneddon/gnfp-cminer/releases/tag/v0.5
 
-Same hasher as **0.4**. Only the 5% fee clock changed: per-process random offset `0..19` and lazy fee connect (second login on the first fee share). Wire still `client=GNFPHash` `version=1.1.2`. Do **not** recut **0.4**. Do **not** ship leftover `1.0.6-max-autotune`.
+Same hasher as **0.4**. Wire `client=GNFPHash` `version=0.5`. Do **not** recut **0.4**. Do **not** ship leftover `1.0.6-max-autotune`.
 
 Darwin **arm64** + Linux **x86_64 ELF** are on **the same** `v0.5`. **Leftover (do this now):** Windows PE attach to **the same** `v0.5`.
 
