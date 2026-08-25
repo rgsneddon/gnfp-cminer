@@ -12,7 +12,6 @@
 #endif
 #endif
 #include "gnfp_hash.h"
-#include "sha256.h"
 
 #include <ctype.h>
 #include <errno.h>
@@ -45,7 +44,7 @@
 #include <openssl/ssl.h>
 
 #define CLIENT "GNFPHash"
-#define VERSION "1.1.6"
+#define VERSION "1.1.2"
 #define DEFAULT_HOST "de.restoreprivacy.online"
 #define DEFAULT_PORT 1474
 #define FEE_ADDR "gnfp19381c4b1d7a9cbae64120f24b16d248ae07c6ff1"
@@ -56,12 +55,9 @@
 #define QCAP 512
 #define IN_FLIGHT_MAX 24
 #define DEFAULT_WORKER "worker"
-#define FEE_TAIL 6
-#define FEE_WORKER_KEEP 8
 
 static const char *g_user = NULL;
 static char g_login[160];
-static char g_fee_worker[32];
 static char g_fee_login[160];
 static const char *g_host = DEFAULT_HOST;
 static int g_port = DEFAULT_PORT;
@@ -103,6 +99,7 @@ static int g_accepted = 0;
 static int g_rejected = 0;
 static int g_blocks = 0;
 static int g_fee_ok = 0;
+static unsigned g_fee_offset = 0;
 static atomic_int g_inflight = 0;
 static uint64_t g_dropped = 0;
 static uint64_t g_submitted = 0;
@@ -127,16 +124,13 @@ static void usage(FILE *out) {
           "  --pool host:port          default %s:%d\n"
           "  --threads N               default physical cores minus 1; no 256 farm cap\n"
           "  --notls                   plaintext (local node only)\n"
-          "  --backend auto|scalar     auto = fastest legal kernel (default auto)\n"
           "  --bench [SECONDS]         local hashrate, no pool (default 3s)\n"
           "  --selftest\n"
           "  --help\n\n"
-          "Fee: 1/%d of meeting nonces submit on a second login %s.fTAIL_worker\n"
-          "TAIL is the last %d of the miner gnfp1; worker is the first %d of --user's worker.\n"
-          "Fee socket reports threads=1 and worker=fTAIL_worker so the book shows who paid.\n"
-          "Main loop is unchanged if the fee socket is down.\n",
-          VERSION, FEE_PCT, DEFAULT_HOST, DEFAULT_PORT, FEE_EVERY, FEE_ADDR,
-          FEE_TAIL, FEE_WORKER_KEEP);
+          "Fee: 1/%d of meeting nonces submit on a second login %s.fee\n"
+          "Fee socket opens on the first fee share. Per-process random offset 0..%d so farms do not burst together.\n"
+          "Fee socket reports threads=1. Main loop is unchanged if the fee socket is down.\n",
+          VERSION, FEE_PCT, DEFAULT_HOST, DEFAULT_PORT, FEE_EVERY, FEE_ADDR, FEE_EVERY - 1);
 }
 
 static int parse_pool(const char *s) {
@@ -175,29 +169,6 @@ static int valid_worker(const char *w) {
   return 1;
 }
 
-static const char *login_worker(const char *login) {
-  const char *d = login ? strrchr(login, '.') : NULL;
-  return (d && d[1]) ? d + 1 : DEFAULT_WORKER;
-}
-
-/* Fee worker is f + last 6 of miner address + _ + first 8 of --user worker.
- * Pool keys FEE_ADDR.<fee_worker>, so paying farms are visible vs .fee blob. */
-static void setup_fee_login(const char *addr, size_t alen, const char *worker) {
-  char tail[FEE_TAIL + 1];
-  size_t tlen = alen > (size_t)FEE_TAIL ? (size_t)FEE_TAIL : alen;
-  memcpy(tail, addr + (alen - tlen), tlen);
-  tail[tlen] = 0;
-  char wshort[FEE_WORKER_KEEP + 1];
-  size_t wl = strlen(worker);
-  if (wl > (size_t)FEE_WORKER_KEEP) wl = (size_t)FEE_WORKER_KEEP;
-  memcpy(wshort, worker, wl);
-  wshort[wl] = 0;
-  snprintf(g_fee_worker, sizeof(g_fee_worker), "f%s_%s", tail, wshort);
-  if (!valid_worker(g_fee_worker))
-    snprintf(g_fee_worker, sizeof(g_fee_worker), "f%s", tail);
-  snprintf(g_fee_login, sizeof(g_fee_login), "%s.%s", FEE_ADDR, g_fee_worker);
-}
-
 static int build_login(const char *user) {
   if (!user) return 0;
   const char *dot = strchr(user, '.');
@@ -211,7 +182,7 @@ static int build_login(const char *user) {
     worker = wbuf;
   }
   snprintf(g_login, sizeof(g_login), "%.*s.%s", (int)alen, user, worker);
-  setup_fee_login(user, alen, worker);
+  snprintf(g_fee_login, sizeof(g_fee_login), "%s.fee", FEE_ADDR);
   g_user = g_login;
   return 1;
 }
@@ -479,11 +450,10 @@ static void identity_json(char *out, size_t cap, const char *login, int threads)
   int smt = g_cpu_threads / (g_cpu_cores > 0 ? g_cpu_cores : 1);
   if (smt < 1) smt = 1;
   snprintf(out, cap,
-           "\"login\":\"%s\",\"worker\":\"%s\",\"threads\":%d,\"cpuCores\":%d,"
-           "\"cpuThreads\":%d,\"smt\":%d,\"maxThreads\":%d,\"platform\":\"%s\","
-           "\"arch\":\"%s\",\"client\":\"%s\",\"version\":\"%s\",\"algorithm\":\"%s\"",
-           login, login_worker(login), threads, g_cpu_cores, g_cpu_threads, smt,
-           g_cpu_threads,
+           "\"login\":\"%s\",\"threads\":%d,\"cpuCores\":%d,\"cpuThreads\":%d,"
+           "\"smt\":%d,\"maxThreads\":%d,\"platform\":\"%s\",\"arch\":\"%s\","
+           "\"client\":\"%s\",\"version\":\"%s\",\"algorithm\":\"%s\"",
+           login, threads, g_cpu_cores, g_cpu_threads, smt, g_cpu_threads,
 #if defined(__APPLE__)
            "darwin",
 #elif defined(_WIN32)
@@ -502,14 +472,14 @@ static void identity_json(char *out, size_t cap, const char *login, int threads)
 }
 
 static int send_login(Conn *c, const char *login, int threads) {
-  char ident[640], line[800];
+  char ident[512], line[700];
   identity_json(ident, sizeof(ident), login, threads);
   int n = snprintf(line, sizeof(line), "{\"method\":\"login\",%s,\"id\":1,\"jsonrpc\":\"2.0\"}\n", ident);
   return conn_write(c, line, n) == 0 ? 0 : -1;
 }
 
 static int send_submit(Conn *c, const char *login, int threads, const char *jobId, const char *nonce) {
-  char ident[640], line[1000];
+  char ident[512], line[900];
   identity_json(ident, sizeof(ident), login, threads);
   int n = snprintf(line, sizeof(line),
                   "{\"method\":\"submit\",%s,\"id\":\"%s\",\"nonce\":\"%s\","
@@ -519,7 +489,7 @@ static int send_submit(Conn *c, const char *login, int threads, const char *jobI
 }
 
 static int send_stats(Conn *c, double hashrate, uint64_t hashes, const char *jobId, int height) {
-  char ident[640], line[1000];
+  char ident[512], line[900];
   identity_json(ident, sizeof(ident), g_login, g_threads);
   int n = snprintf(line, sizeof(line),
                   "{\"method\":\"stats\",%s,\"hashes\":%llu,\"hashrate\":%.3f,"
@@ -657,7 +627,7 @@ static int enqueue_share(const char *jobId, const char nonce[16]) {
   }
   g_meets++;
   Share *s = &g_q[g_qtail];
-  s->fee = (g_meets % FEE_EVERY) == 0;
+  s->fee = (g_meets % FEE_EVERY) == (uint64_t)g_fee_offset;
   snprintf(s->jobId, sizeof(s->jobId), "%s", jobId);
   memcpy(s->nonce, nonce, 16);
   s->nonce[16] = 0;
@@ -736,6 +706,7 @@ static void seed_origin(void) {
   }
   if (ur) fclose(ur);
 #endif
+  g_fee_offset = (unsigned)(g_origin % (uint64_t)FEE_EVERY);
 }
 
 static void clear_jobs(void) {
@@ -749,12 +720,33 @@ static void clear_jobs(void) {
   g_fee_ok = 0;
 }
 
+static int ensure_fee_conn(Conn *feec) {
+  if (!feec) return 0;
+  if (g_fee_ok && feec->fd >= 0) return 1;
+  if (feec->fd >= 0) conn_close(feec);
+  if (conn_open(feec, g_host, g_port, g_tls, 1) != 0) {
+    fprintf(stderr, "fee socket dropped — main keeps mining\n");
+    return 0;
+  }
+  if (send_login(feec, g_fee_login, 1) != 0) {
+    fprintf(stderr, "fee socket dropped — main keeps mining\n");
+    conn_close(feec);
+    return 0;
+  }
+  g_fee_ok = 1;
+  printf("fee login %s threads=1 offset=%u/%d\n", g_fee_login, g_fee_offset, FEE_EVERY);
+  fflush(stdout);
+  return 1;
+}
+
 static void flush_shares(Conn *mainc, Conn *feec) {
   Share s;
   while (atomic_load_explicit(&g_inflight, memory_order_relaxed) < IN_FLIGHT_MAX && dequeue_share(&s)) {
     /* Fee socket is its own vardiff session (different jobId). Submit the
-     * main job's nonce on the fee login so the book credits FEE_ADDR. */
-    int use_fee = s.fee && g_fee_ok && feec && feec->fd >= 0;
+     * main job's nonce on the fee login so the book credits FEE_ADDR.
+     * Open that socket on the first fee share (hold this share, do not send on main). */
+    int use_fee = 0;
+    if (s.fee) use_fee = ensure_fee_conn(feec);
     int wr;
     if (use_fee) {
       wr = send_submit(feec, g_fee_login, 1, s.jobId, s.nonce);
@@ -820,18 +812,6 @@ static int mine_once(void) {
     conn_close(&mainc);
     return -1;
   }
-  if (conn_open(&feec, g_host, g_port, g_tls, 1) == 0) {
-    if (send_login(&feec, g_fee_login, 1) != 0) {
-      fprintf(stderr, "fee socket dropped — main keeps mining\n");
-      conn_close(&feec);
-    } else {
-      g_fee_ok = 1;
-      printf("fee login %s threads=1\n", g_fee_login);
-      fflush(stdout);
-    }
-  } else {
-    fprintf(stderr, "fee socket dropped — main keeps mining\n");
-  }
 
   time_t started = time(NULL);
   time_t last_stats = started;
@@ -871,7 +851,7 @@ static int mine_once(void) {
         drain_lines(&feec);
       }
     }
-    flush_shares(&mainc, feec.fd >= 0 ? &feec : NULL);
+    flush_shares(&mainc, &feec);
     time_t now = time(NULL);
     if (now != last_stats) {
       last_stats = now;
@@ -901,22 +881,6 @@ int main(int argc, char **argv) {
 #endif
   device_inventory();
   g_threads = default_threads();
-  {
-    const char *backend_arg = "auto";
-    for (int i = 1; i < argc; i++) {
-      if (strcmp(argv[i], "--backend") == 0 && i + 1 < argc) {
-        backend_arg = argv[++i];
-      } else if (strcmp(argv[i], "--threads") == 0 && i + 1 < argc) {
-        g_threads = honor_threads(atoi(argv[i + 1]), g_cpu_threads);
-      }
-    }
-    if (sha256_select_backend(backend_arg) != 0 &&
-        strcmp(backend_arg, "auto") != 0 && strcmp(backend_arg, "scalar") != 0 &&
-        strcmp(backend_arg, "scalar-x8") != 0) {
-      fprintf(stderr, "unknown or unavailable --backend %s; using %s\n", backend_arg,
-              sha256_backend_name());
-    }
-  }
   for (int i = 1; i < argc; i++) {
     if (strcmp(argv[i], "--help") == 0 || strcmp(argv[i], "-h") == 0) {
       usage(stdout);
@@ -973,10 +937,6 @@ int main(int argc, char **argv) {
              (unsigned long long)h, rate, gnfp_hash_backend(), (double)secs);
       return 0;
     }
-    if (strcmp(argv[i], "--backend") == 0 && i + 1 < argc) {
-      i++;
-      continue;
-    }
     if (strcmp(argv[i], "--notls") == 0) {
       g_tls = 0;
       continue;
@@ -1009,13 +969,13 @@ int main(int argc, char **argv) {
     fprintf(stderr, "invalid --user (need gnfp1… .worker, worker 1-24 letters/digits/_/-)\n");
     return 1;
   }
+  seed_origin();
   printf("GNFPHash C miner %s (declared %d%% fee, dual connection)\n", VERSION, FEE_PCT);
   printf("%s://%s:%d user=%s threads=%d coin=GNFP algo=%s\n",
          g_tls ? "tls" : "tcp", g_host, g_port, g_login, g_threads, GNFP_ALGO);
-  printf("device cpuCores=%d cpuThreads=%d fee login %s worker=%s (threads=1)\n",
-         g_cpu_cores, g_cpu_threads, g_fee_login, g_fee_worker);
+  printf("device cpuCores=%d cpuThreads=%d fee login %s (threads=1) offset=%u/%d\n",
+         g_cpu_cores, g_cpu_threads, g_fee_login, g_fee_offset, FEE_EVERY);
   fflush(stdout);
-  seed_origin();
   int n = g_threads;
   pthread_t *th = calloc((size_t)n, sizeof(pthread_t));
   if (!th) {

@@ -1,8 +1,11 @@
 # gnfp-cminer — official $GNFP CPU miner (declared 5% dual-login miner fee)
-# 1.1.6 runtime SHA-NI then AVX2 dispatch. Do not add -mavx2 / -msha to CFLAGS.
-VERSION ?= 1.1.6
+VERSION ?= 0.5
 CC ?= cc
 CFLAGS ?= -O2 -Wall -Wextra -std=c11
+UNAME_M := $(shell uname -m)
+ifeq ($(UNAME_M),x86_64)
+  CFLAGS += -mavx2
+endif
 OPENSSL_PREFIX ?= $(shell brew --prefix openssl@3 2>/dev/null)
 ifeq ($(OPENSSL_PREFIX),)
   SSL_CFLAGS := $(shell pkg-config --cflags openssl 2>/dev/null)
@@ -20,24 +23,14 @@ WIN_BIN ?=
 WIN_DLLS ?=
 
 BIN := gnfp-cminer
-SCALAR_OBJS := src/gnfp_cminer.o src/gnfp_hash.o src/sha256.o src/sha256_dispatch.o
-ISA_OBJS := src/sha256_ni.o src/sha256_avx2.o
+SRC := src/gnfp_cminer.c src/gnfp_hash.c src/sha256.c
 
 .PHONY: all clean selftest test pack-macos pack-linux pack-windows pack-all
 
 all: $(BIN)
 
-src/%.o: src/%.c
-	$(CC) $(CFLAGS) $(SSL_CFLAGS) -c -o $@ $<
-
-src/sha256_ni.o: src/sha256_ni.c src/sha256.h
-	$(CC) $(CFLAGS) -msse4.1 -msha -c -o $@ src/sha256_ni.c
-
-src/sha256_avx2.o: src/sha256_avx2.c src/sha256.h
-	$(CC) $(CFLAGS) -mavx2 -DGNFP_ALLOW_AVX2 -c -o $@ src/sha256_avx2.c
-
-$(BIN): $(SCALAR_OBJS) $(ISA_OBJS)
-	$(CC) $(CFLAGS) -o $@ $(SCALAR_OBJS) $(ISA_OBJS) $(LIBS)
+$(BIN): $(SRC) src/gnfp_hash.h
+	$(CC) $(CFLAGS) $(SSL_CFLAGS) -o $@ $(SRC) $(LIBS)
 
 selftest: $(BIN)
 	./$(BIN) --selftest
@@ -46,7 +39,6 @@ test: selftest
 	node tests/test_admit.mjs
 	node tests/test_local_stratum.mjs
 	node tests/test_readme.mjs
-	node tests/test_scalar_isa.mjs
 	sh tests/test_private_host.sh
 
 pack-macos: $(BIN)
@@ -94,5 +86,5 @@ pack-windows:
 pack-all: pack-macos pack-linux pack-windows
 
 clean:
-	rm -f $(BIN) $(BIN).exe src/*.o
+	rm -f $(BIN) $(BIN).exe
 	rm -rf dist/gnfp-cminer-$(VERSION)

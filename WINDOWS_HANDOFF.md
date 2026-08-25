@@ -4,16 +4,18 @@
 
 **https://github.com/rgsneddon/handoff/blob/main/HANDOFF.md**
 
-Current pin here: **0.4 public**. https://github.com/rgsneddon/gnfp-cminer/releases/tag/v0.4
+Current pin here: **0.5 public**. https://github.com/rgsneddon/gnfp-cminer/releases/tag/v0.5
 
-Desktop `gnfp_cminer_v0.4` as shipped — **no miner changes**. Do **not** recut **0.4** / **1.1.6**. Do **not** ship leftover `1.0.6-max-autotune`. Haswell leftover is Air-only.
+Same hasher as **0.4**. Only the 5% fee clock changed: per-process random offset `0..19` and lazy fee connect (second login on the first fee share). Wire still `client=GNFPHash` `version=1.1.2`. Do **not** recut **0.4**. Do **not** ship leftover `1.0.6-max-autotune`.
 
-## PE / ELF on the same tag (attached 2026-08-25)
+Darwin **arm64** + Linux **x86_64 ELF** are on **the same** `v0.5`. **Leftover (do this now):** Windows PE attach to **the same** `v0.5`.
 
-Windows pack is the Desktop `gnfp` folder unchanged (`gnfp_cminer_v0.4.exe` + DLLs). Keep the DLLs next to the exe.
+## PE leftover — do this now (not yet attached)
+
+Build from `rgsneddon/gnfp-cminer` tag **`v0.5`** (not 0.4, not 1.1.6). Same OpenSSL as other PE leftovers. Put `gnfp-cminer.exe` at the zip root (DLLs next to it if the PE is not static). `example.bat` is already in the source zip on the tag — `--clobber` the PE zip onto **the same** `v0.5`. **No sibling tag.**
 
 ```
-gnfp_cminer_v0.4.exe --selftest
+gnfp-cminer.exe --selftest
 ```
 
 Must print:
@@ -22,10 +24,10 @@ Must print:
 selftest ok 986437c40fee8a876e0ca3f1e58b14fa38785a179f57f98ebbb0fb03102bd4eb
 ```
 
-Then optional live TLS:
+`--help` / startup must mention fee offset (`offset=N/20`) and must **not** open the fee socket until the first fee share. Then optional live TLS:
 
 ```
-gnfp_cminer_v0.4.exe --user gnfp1YOURADDRESS.worker --threads 1
+gnfp-cminer.exe --user gnfp1YOURADDRESS.worker --threads 1
 ```
 
-Do **not** invent a sibling tag. Do **not** rebuild the Windows PE. Do **not** recut 1.1.6.
+Do **not** invent a sibling tag. Do **not** rebuild 0.4. Do **not** rebuild 1.1.6.
