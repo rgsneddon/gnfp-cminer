@@ -46,6 +46,8 @@ pack-macos: $(BIN)
 	mkdir -p dist/gnfp-cminer-$(VERSION)
 	cp $(BIN) README.md LICENSE Makefile dist/gnfp-cminer-$(VERSION)/
 	cp -R src tests pack dist/gnfp-cminer-$(VERSION)/
+	cp pack/unix/example.sh dist/gnfp-cminer-$(VERSION)/
+	chmod +x dist/gnfp-cminer-$(VERSION)/example.sh
 	tar -C dist -czf dist/gnfp-cminer-$(VERSION)-macos.tar.gz gnfp-cminer-$(VERSION)
 	@echo packed dist/gnfp-cminer-$(VERSION)-macos.tar.gz
 
@@ -54,6 +56,8 @@ pack-linux:
 	mkdir -p dist/gnfp-cminer-$(VERSION)
 	cp README.md LICENSE Makefile dist/gnfp-cminer-$(VERSION)/
 	cp -R src tests pack dist/gnfp-cminer-$(VERSION)/
+	cp pack/unix/example.sh dist/gnfp-cminer-$(VERSION)/
+	chmod +x dist/gnfp-cminer-$(VERSION)/example.sh
 	@if [ -n "$(LINUX_BIN)" ] && [ -f "$(LINUX_BIN)" ]; then \
 	  cp "$(LINUX_BIN)" dist/gnfp-cminer-$(VERSION)/gnfp-cminer; \
 	  chmod +x dist/gnfp-cminer-$(VERSION)/gnfp-cminer; \
